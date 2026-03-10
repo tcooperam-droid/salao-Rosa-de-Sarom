@@ -1,7 +1,8 @@
 /**
  * BackupPage — Exportar e importar dados em JSON, limpar dados.
+ * Usa Supabase via store (não localStorage).
  */
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -11,31 +12,62 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  Database, Download, Upload, Trash2, CheckCircle, AlertTriangle, RefreshCw,
+  Database, Download, Upload, Trash2, CheckCircle, RefreshCw,
 } from "lucide-react";
-
-const STORAGE_KEYS = [
-  "employees", "employees_counter",
-  "services", "services_counter",
-  "clients", "clients_counter",
-  "appointments", "appointments_counter",
-  "cash_sessions", "cash_sessions_counter",
-  "audit_logs", "audit_logs_counter",
-  "salao_bella_seeded",
-];
+import {
+  employeesStore, servicesStore, clientsStore, appointmentsStore,
+  cashSessionsStore, cashEntriesStore, auditStore,
+  fetchAllData,
+} from "@/lib/store";
+import { supabase } from "@/lib/supabase";
 
 export default function BackupPage() {
   const [clearOpen, setClearOpen] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [summary, setSummary] = useState([
+    { label: "Funcionários", count: 0 },
+    { label: "Serviços", count: 0 },
+    { label: "Clientes", count: 0 },
+    { label: "Agendamentos", count: 0 },
+    { label: "Sessões de Caixa", count: 0 },
+    { label: "Logs de Auditoria", count: 0 },
+  ]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const exportData = () => {
+  const refreshSummary = () => {
+    setSummary([
+      { label: "Funcionários", count: employeesStore.list().length },
+      { label: "Serviços", count: servicesStore.list().length },
+      { label: "Clientes", count: clientsStore.list().length },
+      { label: "Agendamentos", count: appointmentsStore.list().length },
+      { label: "Sessões de Caixa", count: cashSessionsStore.list().length },
+      { label: "Logs de Auditoria", count: auditStore.log().length },
+    ]);
+  };
+
+  useEffect(() => {
+    fetchAllData().then(refreshSummary);
+  }, []);
+
+  const totalRecords = summary.reduce((sum, s) => sum + s.count, 0);
+
+  const exportData = async () => {
+    setExporting(true);
     try {
-      const data: Record<string, any> = {};
-      STORAGE_KEYS.forEach(key => {
-        const val = localStorage.getItem(key);
-        if (val !== null) data[key] = val;
-      });
+      await fetchAllData();
+      const data = {
+        exportedAt: new Date().toISOString(),
+        version: "supabase-v1",
+        employees: employeesStore.list(),
+        services: servicesStore.list(),
+        clients: clientsStore.list(),
+        appointments: appointmentsStore.list(),
+        cashSessions: cashSessionsStore.list(),
+        cashEntries: cashEntriesStore.list(),
+        auditLogs: auditStore.log(),
+      };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -46,6 +78,8 @@ export default function BackupPage() {
       toast.success("Backup exportado com sucesso!");
     } catch {
       toast.error("Erro ao exportar backup");
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -53,55 +87,78 @@ export default function BackupPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
+      setImporting(true);
       try {
         const data = JSON.parse(ev.target?.result as string);
         if (typeof data !== "object") throw new Error("Formato inválido");
-        Object.entries(data).forEach(([key, value]) => {
-          if (STORAGE_KEYS.includes(key)) {
-            localStorage.setItem(key, value as string);
+
+        if (data.version !== "supabase-v1") {
+          toast.error("Formato de backup não reconhecido. Use um backup exportado por esta versão do app.");
+          return;
+        }
+
+        if (Array.isArray(data.employees)) {
+          for (const e of data.employees) {
+            await employeesStore.create({
+              name: e.name, email: e.email ?? "", phone: e.phone ?? "",
+              color: e.color ?? "#ec4899", specialties: e.specialties ?? [],
+              commissionPercent: e.commissionPercent ?? 0,
+              workingHours: e.workingHours ?? {}, active: e.active ?? true,
+            });
           }
-        });
-        toast.success("Backup importado! Recarregando...");
-        setTimeout(() => window.location.reload(), 1000);
-      } catch {
-        toast.error("Arquivo de backup inválido");
+        }
+        if (Array.isArray(data.services)) {
+          for (const s of data.services) {
+            await servicesStore.create({
+              name: s.name, description: s.description ?? null,
+              durationMinutes: s.durationMinutes ?? 60, price: s.price ?? 0,
+              color: s.color ?? "#ec4899", active: s.active ?? true,
+            });
+          }
+        }
+        if (Array.isArray(data.clients)) {
+          for (const c of data.clients) {
+            await clientsStore.create({
+              name: c.name, email: c.email ?? null, phone: c.phone ?? null,
+              birthDate: c.birthDate ?? null, cpf: c.cpf ?? null,
+              address: c.address ?? null, notes: c.notes ?? null,
+            });
+          }
+        }
+        await fetchAllData();
+        refreshSummary();
+        toast.success("Backup importado com sucesso!");
+      } catch (err: any) {
+        toast.error(err?.message ?? "Arquivo de backup inválido");
+      } finally {
+        setImporting(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
       }
     };
     reader.readAsText(file);
-    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const clearAllData = () => {
+  const clearAllData = async () => {
     setClearing(true);
     try {
-      STORAGE_KEYS.forEach(key => localStorage.removeItem(key));
-      toast.success("Todos os dados foram removidos! Recarregando...");
-      setTimeout(() => window.location.reload(), 1000);
+      await supabase.from("audit_logs").delete().neq("id", 0);
+      await supabase.from("cash_entries").delete().neq("id", 0);
+      await supabase.from("cash_sessions").delete().neq("id", 0);
+      await supabase.from("appointments").delete().neq("id", 0);
+      await supabase.from("clients").delete().neq("id", 0);
+      await supabase.from("services").delete().neq("id", 0);
+      await supabase.from("employees").delete().neq("id", 0);
+      await fetchAllData();
+      refreshSummary();
+      toast.success("Todos os dados foram removidos!");
+      setClearOpen(false);
     } catch {
       toast.error("Erro ao limpar dados");
     } finally {
       setClearing(false);
-      setClearOpen(false);
     }
   };
-
-  const getDataSummary = () => {
-    const count = (key: string) => {
-      try { return JSON.parse(localStorage.getItem(key) ?? "[]").length; } catch { return 0; }
-    };
-    return [
-      { label: "Funcionários", count: count("employees") },
-      { label: "Serviços", count: count("services") },
-      { label: "Clientes", count: count("clients") },
-      { label: "Agendamentos", count: count("appointments") },
-      { label: "Sessões de Caixa", count: count("cash_sessions") },
-      { label: "Logs de Auditoria", count: count("audit_logs") },
-    ];
-  };
-
-  const summary = getDataSummary();
-  const totalRecords = summary.reduce((sum, s) => sum + s.count, 0);
 
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -128,7 +185,7 @@ export default function BackupPage() {
           </div>
           <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
             <CheckCircle className="w-4 h-4 text-emerald-400" />
-            <span>Total: <strong className="text-foreground">{totalRecords}</strong> registros armazenados localmente</span>
+            <span>Total: <strong className="text-foreground">{totalRecords}</strong> registros no banco de dados</span>
           </div>
         </CardContent>
       </Card>
@@ -138,7 +195,7 @@ export default function BackupPage() {
         <Card className="border-border bg-card/50 hover:border-primary/30 transition-colors cursor-pointer" onClick={exportData}>
           <CardContent className="pt-6 text-center space-y-3">
             <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center mx-auto">
-              <Download className="w-6 h-6 text-primary" />
+              {exporting ? <RefreshCw className="w-6 h-6 text-primary animate-spin" /> : <Download className="w-6 h-6 text-primary" />}
             </div>
             <h3 className="font-semibold">Exportar Backup</h3>
             <p className="text-xs text-muted-foreground">Baixar todos os dados em formato JSON</p>
@@ -148,7 +205,7 @@ export default function BackupPage() {
         <Card className="border-border bg-card/50 hover:border-blue-500/30 transition-colors cursor-pointer" onClick={() => fileInputRef.current?.click()}>
           <CardContent className="pt-6 text-center space-y-3">
             <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center mx-auto">
-              <Upload className="w-6 h-6 text-blue-400" />
+              {importing ? <RefreshCw className="w-6 h-6 text-blue-400 animate-spin" /> : <Upload className="w-6 h-6 text-blue-400" />}
             </div>
             <h3 className="font-semibold">Importar Backup</h3>
             <p className="text-xs text-muted-foreground">Restaurar dados de um arquivo JSON</p>
@@ -169,15 +226,15 @@ export default function BackupPage() {
       <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={importData} />
 
       {/* Info */}
-      <Card className="border-amber-500/30 bg-amber-500/5">
+      <Card className="border-emerald-500/30 bg-emerald-500/5">
         <CardContent className="pt-5">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+            <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-amber-400">Armazenamento Local</p>
+              <p className="text-sm font-medium text-emerald-400">Banco de Dados na Nuvem</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Os dados são armazenados no navegador (localStorage). Limpar o cache do navegador
-                pode apagar os dados. Faça backups regulares para evitar perda de informações.
+                Os dados são armazenados no Supabase (nuvem). Acessíveis de qualquer dispositivo.
+                Faça backups regulares em JSON para ter uma cópia local de segurança.
               </p>
             </div>
           </div>
@@ -190,7 +247,7 @@ export default function BackupPage() {
           <DialogHeader><DialogTitle>Limpar todos os dados?</DialogTitle></DialogHeader>
           <div className="py-4">
             <p className="text-sm text-muted-foreground mb-4">
-              Esta ação vai remover <strong className="text-foreground">{totalRecords} registros</strong> permanentemente.
+              Esta ação vai remover <strong className="text-foreground">{totalRecords} registros</strong> permanentemente do banco de dados.
             </p>
             <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
               <p className="text-sm text-destructive">Atenção: esta ação não pode ser desfeita. Faça um backup antes.</p>
