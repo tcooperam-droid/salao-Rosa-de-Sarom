@@ -240,7 +240,6 @@ export default function FerramentasClientesPage() {
           const workbook = XLSX.read(data, { type: "array" });
           const sheet = workbook.Sheets[workbook.SheetNames[0]];
           const rows: Record<string, string>[] = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-          // Normaliza chaves para lowercase sem espaços extras
           const normalized = rows.map(row =>
             Object.fromEntries(
               Object.entries(row).map(([k, v]) => [
@@ -252,6 +251,8 @@ export default function FerramentasClientesPage() {
           processRows(normalized);
         } catch {
           toast.error("Erro ao ler o arquivo XLSX. Verifique se não está corrompido.");
+        } finally {
+          if (fileInputRef.current) fileInputRef.current.value = "";
         }
       };
       reader.readAsArrayBuffer(file);
@@ -275,12 +276,12 @@ export default function FerramentasClientesPage() {
           }
         } catch {
           toast.error("Erro ao ler o arquivo. Verifique o formato.");
+        } finally {
+          if (fileInputRef.current) fileInputRef.current.value = "";
         }
       };
       reader.readAsText(file);
     }
-
-    if (fileInputRef.current) fileInputRef.current.value = "";
   }, []);
 
 
@@ -318,8 +319,10 @@ export default function FerramentasClientesPage() {
       setImportModalOpen(false);
       setImportPreview([]);
       refresh();
-    } catch {
-      toast.error("Erro ao importar clientes");
+    } catch (err: any) {
+      const msg = err?.message || err?.error_description || JSON.stringify(err) || "Erro desconhecido";
+      toast.error(`Erro ao importar: ${msg}`);
+      console.error("Import error:", err);
     } finally {
       setImporting(false);
     }
