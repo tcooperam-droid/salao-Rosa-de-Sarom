@@ -2,7 +2,7 @@
  * Design: Glass Dashboard — Sidebar translúcida com navegação vertical.
  * Tema escuro, accent rosa, backdrop-blur nas superfícies.
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -47,6 +47,20 @@ const NAV_ITEMS: NavItem[] = [
   { path: "/configuracoes", label: "Configurações", icon: Settings },
 ];
 
+function loadSalonBranding() {
+  try {
+    const saved = localStorage.getItem("salon_config");
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return {
+        name: parsed.salonName || "Salão Bella",
+        logo: parsed.logoUrl || "",
+      };
+    }
+  } catch { /* ignore */ }
+  return { name: "Salão Bella", logo: "" };
+}
+
 interface SalaoLayoutProps {
   children: React.ReactNode;
 }
@@ -55,6 +69,14 @@ export default function SalaoLayout({ children }: SalaoLayoutProps) {
   const [location, setLocation] = useLocation();
   const { theme, toggleTheme, switchable } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [branding, setBranding] = useState(loadSalonBranding);
+
+  // Atualiza nome/logo imediatamente quando Configurações salvar
+  useEffect(() => {
+    const onUpdate = () => setBranding(loadSalonBranding());
+    window.addEventListener("salon_config_updated", onUpdate);
+    return () => window.removeEventListener("salon_config_updated", onUpdate);
+  }, []);
 
   const navigate = (path: string) => {
     setLocation(path);
@@ -83,10 +105,14 @@ export default function SalaoLayout({ children }: SalaoLayoutProps) {
         {/* Logo */}
         <div className="flex items-center justify-between px-4 py-4 border-b border-border">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0 shadow-lg shadow-primary/25">
-              <Scissors className="w-4 h-4 text-primary-foreground" />
+            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0 shadow-lg shadow-primary/25 overflow-hidden">
+              {branding.logo ? (
+                <img src={branding.logo} alt="logo" className="w-full h-full object-contain p-0.5" />
+              ) : (
+                <Scissors className="w-4 h-4 text-primary-foreground" />
+              )}
             </div>
-            <span className="font-bold text-base tracking-tight">Salão Bella</span>
+            <span className="font-bold text-base tracking-tight truncate max-w-[120px]">{branding.name}</span>
           </div>
           <button
             className="md:hidden text-muted-foreground hover:text-foreground transition-colors"
@@ -153,10 +179,14 @@ export default function SalaoLayout({ children }: SalaoLayoutProps) {
             <Menu className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-primary flex items-center justify-center shadow-sm shadow-primary/25">
-              <Scissors className="w-3.5 h-3.5 text-primary-foreground" />
+            <div className="w-6 h-6 rounded-md bg-primary flex items-center justify-center shadow-sm shadow-primary/25 overflow-hidden">
+              {branding.logo ? (
+                <img src={branding.logo} alt="logo" className="w-full h-full object-contain p-0.5" />
+              ) : (
+                <Scissors className="w-3.5 h-3.5 text-primary-foreground" />
+              )}
             </div>
-            <span className="font-bold text-sm">Salão Bella</span>
+            <span className="font-bold text-sm truncate max-w-[140px]">{branding.name}</span>
           </div>
           {switchable && (
             <div className="ml-auto">
