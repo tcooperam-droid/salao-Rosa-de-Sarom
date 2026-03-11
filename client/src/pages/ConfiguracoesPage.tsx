@@ -1,7 +1,7 @@
 /**
  * ConfiguracoesPage — Configurações gerais do salão.
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { Settings, Building2, Clock, Bell, Palette, Save } from "lucide-react";
+import { Settings, Building2, Clock, Bell, Palette, Save, ImagePlus, Trash2, Scissors } from "lucide-react";
+import { applyAccentColor } from "@/contexts/ThemeContext";
 
 interface SalonConfig {
   salonName: string;
@@ -20,10 +21,9 @@ interface SalonConfig {
   openTime: string;
   closeTime: string;
   slotDuration: number;
-  notifyWhatsapp: boolean;
   notifyEmail: boolean;
-  autoConfirm: boolean;
   accentColor: string;
+  logoUrl: string;
 }
 
 const DEFAULT_CONFIG: SalonConfig = {
@@ -34,10 +34,9 @@ const DEFAULT_CONFIG: SalonConfig = {
   openTime: "08:00",
   closeTime: "20:00",
   slotDuration: 30,
-  notifyWhatsapp: false,
   notifyEmail: false,
-  autoConfirm: false,
   accentColor: "#ec4899",
+  logoUrl: "",
 };
 
 const ACCENT_COLORS = [
@@ -48,6 +47,7 @@ const ACCENT_COLORS = [
 export default function ConfiguracoesPage() {
   const [config, setConfig] = useState<SalonConfig>(DEFAULT_CONFIG);
   const [loading, setLoading] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     try {
@@ -56,10 +56,28 @@ export default function ConfiguracoesPage() {
     } catch { /* ignore */ }
   }, []);
 
+  const handleLogoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 500 * 1024) {
+      toast.error("Imagem muito grande. Use uma imagem menor que 500KB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const base64 = ev.target?.result as string;
+      updateConfig("logoUrl", base64);
+    };
+    reader.readAsDataURL(file);
+    if (logoInputRef.current) logoInputRef.current.value = "";
+  };
+
   const handleSave = () => {
     setLoading(true);
     try {
       localStorage.setItem("salon_config", JSON.stringify(config));
+      // Dispara evento para o SalaoLayout atualizar sem precisar recarregar
+      window.dispatchEvent(new Event("salon_config_updated"));
       toast.success("Configurações salvas!");
     } catch {
       toast.error("Erro ao salvar");
@@ -92,6 +110,41 @@ export default function ConfiguracoesPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+
+          {/* Logo upload */}
+          <div className="space-y-2">
+            <Label>Logo do salão</Label>
+            <div className="flex items-center gap-4">
+              {/* Preview */}
+              <div className="w-20 h-20 rounded-xl border-2 border-dashed border-border bg-secondary/30 flex items-center justify-center overflow-hidden flex-shrink-0">
+                {config.logoUrl ? (
+                  <img src={config.logoUrl} alt="Logo" className="w-full h-full object-contain p-1" />
+                ) : (
+                  <div className="flex flex-col items-center gap-1 text-muted-foreground">
+                    <Scissors className="w-6 h-6 opacity-40" />
+                    <span className="text-[10px]">sem logo</span>
+                  </div>
+                )}
+              </div>
+              {/* Actions */}
+              <div className="flex flex-col gap-2">
+                <Button type="button" variant="outline" size="sm" className="gap-2 text-xs" onClick={() => logoInputRef.current?.click()}>
+                  <ImagePlus className="w-3.5 h-3.5" />
+                  {config.logoUrl ? "Trocar logo" : "Carregar logo"}
+                </Button>
+                {config.logoUrl && (
+                  <Button type="button" variant="ghost" size="sm" className="gap-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10" onClick={() => updateConfig("logoUrl", "")}>
+                    <Trash2 className="w-3.5 h-3.5" />Remover logo
+                  </Button>
+                )}
+                <p className="text-[10px] text-muted-foreground">PNG, JPG ou SVG. Máx 500KB.</p>
+              </div>
+            </div>
+            <input ref={logoInputRef} type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" style={{ display: "none" }} onChange={handleLogoSelect} />
+          </div>
+
+          <Separator />
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
               <Label>Nome do salão</Label>
@@ -148,26 +201,10 @@ export default function ConfiguracoesPage() {
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium">Notificação por WhatsApp</p>
-              <p className="text-xs text-muted-foreground">Enviar lembretes de agendamento via WhatsApp</p>
-            </div>
-            <Switch checked={config.notifyWhatsapp} onCheckedChange={v => updateConfig("notifyWhatsapp", v)} />
-          </div>
-          <Separator />
-          <div className="flex items-center justify-between">
-            <div>
               <p className="text-sm font-medium">Notificação por E-mail</p>
-              <p className="text-xs text-muted-foreground">Enviar confirmações por e-mail</p>
+              <p className="text-xs text-muted-foreground">Enviar confirmações por e-mail (requer integração SMTP)</p>
             </div>
             <Switch checked={config.notifyEmail} onCheckedChange={v => updateConfig("notifyEmail", v)} />
-          </div>
-          <Separator />
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium">Auto-confirmar agendamentos</p>
-              <p className="text-xs text-muted-foreground">Confirmar automaticamente novos agendamentos</p>
-            </div>
-            <Switch checked={config.autoConfirm} onCheckedChange={v => updateConfig("autoConfirm", v)} />
           </div>
         </CardContent>
       </Card>
@@ -184,7 +221,7 @@ export default function ConfiguracoesPage() {
             <Label>Cor principal</Label>
             <div className="flex gap-2 flex-wrap">
               {ACCENT_COLORS.map(c => (
-                <button key={c} type="button" onClick={() => updateConfig("accentColor", c)}
+                <button key={c} type="button" onClick={() => { updateConfig("accentColor", c); applyAccentColor(c); }}
                   className={`w-10 h-10 rounded-full border-2 transition-all ${config.accentColor === c ? "border-white scale-110 shadow-lg" : "border-transparent"}`}
                   style={{ backgroundColor: c }} />
               ))}
