@@ -19,23 +19,37 @@ import {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const HOUR_HEIGHT = 64;
-const START_HOUR = 7;
-const END_HOUR = 21;
-const TOTAL_HOURS = END_HOUR - START_HOUR;
 const MIN_COL_WIDTH = 120;
-const SNAP_MINUTES = 15;
+
+function loadScheduleConfig() {
+  try {
+    const saved = localStorage.getItem("salon_config");
+    if (saved) {
+      const c = JSON.parse(saved);
+      const startH = parseInt((c.openTime  || "07:00").split(":")[0]);
+      const endH   = parseInt((c.closeTime || "21:00").split(":")[0]);
+      const snap   = parseInt(c.slotDuration) || 15;
+      return {
+        START_HOUR:   isNaN(startH) ? 7  : startH,
+        END_HOUR:     isNaN(endH)   ? 21 : endH,
+        SNAP_MINUTES: isNaN(snap)   ? 15 : snap,
+      };
+    }
+  } catch { /* ignore */ }
+  return { START_HOUR: 7, END_HOUR: 21, SNAP_MINUTES: 15 };
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-function timeToPixels(date: Date): number {
-  return (date.getHours() + date.getMinutes() / 60 - START_HOUR) * HOUR_HEIGHT;
+function timeToPixels(date: Date, startHour: number): number {
+  return (date.getHours() + date.getMinutes() / 60 - startHour) * HOUR_HEIGHT;
 }
 
 function durationToPixels(start: Date, end: Date): number {
   return ((end.getTime() - start.getTime()) / 3_600_000) * HOUR_HEIGHT;
 }
 
-function snapToGrid(minutes: number): number {
-  return Math.round(minutes / SNAP_MINUTES) * SNAP_MINUTES;
+function snapToGrid(minutes: number, snapMinutes: number): number {
+  return Math.round(minutes / snapMinutes) * snapMinutes;
 }
 
 const STATUS_BORDER: Record<string, string> = {
@@ -54,16 +68,18 @@ const AppointmentBlock = memo(function AppointmentBlock({
   isGrouped,
   onClick,
   onDragStart,
+  startHour,
 }: {
   appt: Appointment;
   color: string;
   isGrouped: boolean;
   onClick: () => void;
   onDragStart: (appt: Appointment, y: number, x: number) => void;
+  startHour: number;
 }) {
   const start  = new Date(appt.startTime);
   const end    = new Date(appt.endTime);
-  const top    = timeToPixels(start);
+  const top    = timeToPixels(start, startHour);
   const height = Math.max(durationToPixels(start, end), 28);
 
   const pendingDrag = useRef<{ y: number; x: number } | null>(null);
@@ -160,6 +176,9 @@ const EmployeeColumn = memo(function EmployeeColumn({
   onColumnClick,
   onAppointmentClick,
   onDragStart,
+  startHour,
+  totalHours,
+  snapMinutes,
 }: {
   employee: { id: number; name: string; color: string };
   appointments: Appointment[];
@@ -169,16 +188,19 @@ const EmployeeColumn = memo(function EmployeeColumn({
   onColumnClick: (empId: number, hour: number, minute: number) => void;
   onAppointmentClick: (appt: Appointment) => void;
   onDragStart: (appt: Appointment, y: number, x: number) => void;
+  startHour: number;
+  totalHours: number;
+  snapMinutes: number;
 }) {
   const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const y = e.clientY - rect.top;
-    const totalMinutes = (y / HOUR_HEIGHT) * 60 + START_HOUR * 60;
-    const snapped = snapToGrid(totalMinutes);
+    const totalMinutes = (y / HOUR_HEIGHT) * 60 + startHour * 60;
+    const snapped = snapToGrid(totalMinutes, snapMinutes);
     const hour = Math.floor(snapped / 60);
     const minute = snapped % 60;
     onColumnClick(employee.id, hour, minute);
-  }, [employee.id, onColumnClick]);
+  }, [employee.id, onColumnClick, startHour, snapMinutes]);
 
   return (
     <div
@@ -186,14 +208,14 @@ const EmployeeColumn = memo(function EmployeeColumn({
         "relative border-l border-border transition-colors",
         isDragOver && "bg-primary/8"
       )}
-      style={{ height: `${TOTAL_HOURS * HOUR_HEIGHT}px`, width: `${MIN_COL_WIDTH}px` }}
+      style={{ height: `${totalHours * HOUR_HEIGHT}px`, width: `${MIN_COL_WIDTH}px` }}
       onClick={handleClick}
     >
-      {Array.from({ length: TOTAL_HOURS }, (_, i) => (
+      {Array.from({ length: totalHours }, (_, i) => (
         <div key={i} className="absolute w-full border-t border-border/30"
           style={{ top: `${i * HOUR_HEIGHT}px` }} />
       ))}
-      {Array.from({ length: TOTAL_HOURS }, (_, i) => (
+      {Array.from({ length: totalHours }, (_, i) => (
         <div key={`h${i}`} className="absolute w-full border-t border-border/10 border-dashed"
           style={{ top: `${i * HOUR_HEIGHT + HOUR_HEIGHT / 2}px` }} />
       ))}
@@ -211,6 +233,7 @@ const EmployeeColumn = memo(function EmployeeColumn({
             isGrouped={isGrouped}
             onClick={() => onAppointmentClick(appt)}
             onDragStart={onDragStart}
+            startHour={startHour}
           />
         );
       })}
@@ -248,6 +271,17 @@ export default function AgendaPage() {
   const [groupClientName, setGroupClientName] = useState<string | undefined>();
   const [groupId, setGroupId]             = useState<string | undefined>();
   const [refreshKey, setRefreshKey]       = useState(0);
+
+  // Horários/slots dinâmicos vindos de Configurações
+  const [schedCfg, setSchedCfg] = useState(loadScheduleConfig);
+  const { START_HOUR, END_HOUR, SNAP_MINUTES } = schedCfg;
+  const TOTAL_HOURS = END_HOUR - START_HOUR;
+
+  useEffect(() => {
+    const onUpdate = () => setSchedCfg(loadScheduleConfig());
+    window.addEventListener("salon_config_updated", onUpdate);
+    return () => window.removeEventListener("salon_config_updated", onUpdate);
+  }, []);
 
   // Drag state
   const [dragging, setDragging]           = useState<Appointment | null>(null);
@@ -312,7 +346,7 @@ export default function AgendaPage() {
 
     const onUp = (e: PointerEvent) => {
       const deltaY = e.clientY - dragStartY.current;
-      const deltaMin = snapToGrid((deltaY / HOUR_HEIGHT) * 60);
+      const deltaMin = snapToGrid((deltaY / HOUR_HEIGHT) * 60, SNAP_MINUTES);
       const targetEmpId = getEmpAtX(e.clientX) ?? dragging.employeeId;
 
       const oldStart = new Date(dragging.startTime);
@@ -338,7 +372,7 @@ export default function AgendaPage() {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
     };
-  }, [dragging, getEmpAtX]);
+  }, [dragging, getEmpAtX, START_HOUR, END_HOUR, SNAP_MINUTES]);
 
   // ── Drag start ────────────────────────────────────────────────────────────
   const handleDragStart = useCallback((appt: Appointment, y: number, x: number) => {
@@ -447,6 +481,8 @@ export default function AgendaPage() {
               ))}
             </div>
           </div>
+            </div>
+          </div>
 
           {/* Employee columns */}
           {employees.length === 0 ? (
@@ -476,6 +512,9 @@ export default function AgendaPage() {
                     onColumnClick={openNew}
                     onAppointmentClick={openEdit}
                     onDragStart={handleDragStart}
+                    startHour={START_HOUR}
+                    totalHours={TOTAL_HOURS}
+                    snapMinutes={SNAP_MINUTES}
                   />
                 </div>
               </div>
