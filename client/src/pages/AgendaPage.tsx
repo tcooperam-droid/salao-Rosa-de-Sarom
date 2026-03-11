@@ -481,8 +481,6 @@ export default function AgendaPage() {
               ))}
             </div>
           </div>
-            </div>
-          </div>
 
           {/* Employee columns */}
           {employees.length === 0 ? (
