@@ -66,17 +66,37 @@ const AppointmentBlock = memo(function AppointmentBlock({
   const top    = timeToPixels(start);
   const height = Math.max(durationToPixels(start, end), 28);
 
+  const pendingDrag = useRef<{ y: number; x: number } | null>(null);
+  const didDrag = useRef(false);
+
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     if (e.button !== 0 && e.pointerType === "mouse") return;
     e.stopPropagation();
+    didDrag.current = false;
+    pendingDrag.current = { y: e.clientY, x: e.clientX };
     e.currentTarget.setPointerCapture(e.pointerId);
-    onDragStart(appt, e.clientY, e.clientX);
+  }, []);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!pendingDrag.current) return;
+    const dy = e.clientY - pendingDrag.current.y;
+    const dx = e.clientX - pendingDrag.current.x;
+    if (!didDrag.current && Math.sqrt(dy * dy + dx * dx) > 6) {
+      didDrag.current = true;
+      onDragStart(appt, pendingDrag.current.y, pendingDrag.current.x);
+    }
   }, [appt, onDragStart]);
+
+  const handlePointerUp = useCallback(() => {
+    pendingDrag.current = null;
+  }, []);
 
   return (
     <div
       onPointerDown={handlePointerDown}
-      onClick={(e) => { e.stopPropagation(); onClick(); }}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onClick={(e) => { e.stopPropagation(); if (!didDrag.current) onClick(); }}
       style={{
         position: "absolute",
         top: `${top}px`,
