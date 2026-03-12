@@ -9,9 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+
 import { Switch } from "@/components/ui/switch";
-import { Plus, Pencil, Trash2, UserCheck, Phone, Mail, Percent } from "lucide-react";
+import { Plus, Pencil, Trash2, UserCheck, Phone, Mail, Percent, Camera, X as XIcon } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { employeesStore, type Employee } from "@/lib/store";
 
 const COLORS = ["#ec4899", "#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#ef4444", "#3b82f6", "#84cc16", "#f97316", "#6366f1"];
@@ -25,12 +26,14 @@ const defaultWorkingHours = (): WorkingHours =>
 
 interface EmployeeFormData {
   name: string; email: string; phone: string; color: string;
+  photoUrl: string;
   specialties: string; commissionPercent: string;
   workingHours: WorkingHours; active: boolean;
 }
 
 const defaultForm = (): EmployeeFormData => ({
   name: "", email: "", phone: "", color: COLORS[0],
+  photoUrl: "",
   specialties: "", commissionPercent: "30",
   workingHours: defaultWorkingHours(), active: true,
 });
@@ -50,6 +53,7 @@ export default function FuncionariosPage() {
     setEditingId(emp.id);
     setForm({
       name: emp.name, email: emp.email, phone: emp.phone, color: emp.color,
+      photoUrl: emp.photoUrl ?? "",
       specialties: emp.specialties.join(", "),
       commissionPercent: String(emp.commissionPercent),
       workingHours: emp.workingHours ?? defaultWorkingHours(),
@@ -71,6 +75,7 @@ export default function FuncionariosPage() {
     try {
       const payload = {
         name: form.name.trim(), email: form.email, phone: form.phone, color: form.color,
+        photoUrl: form.photoUrl.trim() || null,
         specialties: form.specialties.split(",").map(s => s.trim()).filter(Boolean),
         commissionPercent: parseFloat(form.commissionPercent) || 0,
         workingHours: form.workingHours, active: form.active,
@@ -120,9 +125,10 @@ export default function FuncionariosPage() {
               <div className="h-1.5" style={{ backgroundColor: emp.color }} />
               <CardHeader className="pb-2">
                 <div className="flex items-center gap-3">
-                  <Avatar className="w-10 h-10">
-                    <AvatarFallback style={{ backgroundColor: emp.color + "33", color: emp.color }} className="font-bold text-sm">
-                      {emp.name.charAt(0)}
+                  <Avatar className="w-10 h-10" style={{ boxShadow: `0 0 0 2px ${emp.color}55` }}>
+                    {emp.photoUrl && <AvatarImage src={emp.photoUrl} alt={emp.name} />}
+                    <AvatarFallback style={{ backgroundColor: emp.color, color: "#fff" }} className="font-bold text-sm">
+                      {emp.name.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
@@ -197,6 +203,33 @@ export default function FuncionariosPage() {
               <div className="space-y-1">
                 <Label>Especialidades (vírgula)</Label>
                 <Input value={form.specialties} onChange={e => setForm(p => ({ ...p, specialties: e.target.value }))} placeholder="Corte, Coloração" />
+              </div>
+              <div className="col-span-2 space-y-1">
+                <Label className="flex items-center gap-1.5"><Camera className="w-3.5 h-3.5" /> Foto (URL)</Label>
+                <div className="flex gap-2 items-center">
+                  <Input
+                    value={form.photoUrl}
+                    onChange={e => setForm(p => ({ ...p, photoUrl: e.target.value }))}
+                    placeholder="https://exemplo.com/foto.jpg"
+                    className="flex-1"
+                  />
+                  {form.photoUrl && (
+                    <button type="button" onClick={() => setForm(p => ({ ...p, photoUrl: "" }))} className="text-muted-foreground hover:text-foreground transition-colors">
+                      <XIcon className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+                {form.photoUrl && (
+                  <div className="flex items-center gap-2 mt-1">
+                    <Avatar className="w-8 h-8">
+                      <AvatarImage src={form.photoUrl} alt="preview" />
+                      <AvatarFallback style={{ backgroundColor: form.color, color: "#fff" }} className="text-xs font-bold">
+                        {form.name.charAt(0).toUpperCase() || "?"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-xs text-muted-foreground">Pré-visualização</span>
+                  </div>
+                )}
               </div>
             </div>
 
