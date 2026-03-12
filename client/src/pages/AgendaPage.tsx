@@ -180,7 +180,7 @@ const EmployeeColumn = memo(function EmployeeColumn({
   totalHours,
   snapMinutes,
 }: {
-  employee: { id: number; name: string; color: string };
+  employee: { id: number; name: string; color: string; photoUrl?: string | null };
   appointments: Appointment[];
   serviceMap: Map<number, { color: string }>;
   groupIds: Set<string>;
@@ -212,13 +212,15 @@ const EmployeeColumn = memo(function EmployeeColumn({
       onClick={handleClick}
     >
       {Array.from({ length: totalHours }, (_, i) => (
-        <div key={i} className="absolute w-full border-t border-border/30"
+        <div key={i} className="absolute w-full border-t border-border/60"
           style={{ top: `${i * HOUR_HEIGHT}px` }} />
       ))}
       {Array.from({ length: totalHours }, (_, i) => (
-        <div key={`h${i}`} className="absolute w-full border-t border-border/10 border-dashed"
+        <div key={`h${i}`} className="absolute w-full border-t border-border/20 border-dashed"
           style={{ top: `${i * HOUR_HEIGHT + HOUR_HEIGHT / 2}px` }} />
       ))}
+      {/* Linha do horário atual — pointer-events:none para não bloquear cliques */}
+      <NowLine startHour={startHour} totalHours={totalHours} />
       {appointments.map(appt => {
         const firstSvcId = appt.services?.[0]?.serviceId;
         const color = firstSvcId
@@ -240,6 +242,76 @@ const EmployeeColumn = memo(function EmployeeColumn({
     </div>
   );
 });
+
+// ─── useAccentColor — lê a cor de acento do salon_config ─────────────────────
+function useAccentColor(): string {
+  const [accent, setAccent] = useState(() => {
+    try {
+      const s = localStorage.getItem("salon_config");
+      if (s) return JSON.parse(s).accentColor || "#ec4899";
+    } catch { /* ignore */ }
+    return "#ec4899";
+  });
+  useEffect(() => {
+    const onUpdate = () => {
+      try {
+        const s = localStorage.getItem("salon_config");
+        if (s) setAccent(JSON.parse(s).accentColor || "#ec4899");
+      } catch { /* ignore */ }
+    };
+    window.addEventListener("salon_config_updated", onUpdate);
+    return () => window.removeEventListener("salon_config_updated", onUpdate);
+  }, []);
+  return accent;
+}
+
+// ─── NowLine — linha vermelha do horário atual ────────────────────────────────
+function NowLine({ startHour, totalHours }: { startHour: number; totalHours: number }) {
+  const accent = useAccentColor();
+  const [top, setTop] = useState<number | null>(null);
+
+  const calcTop = useCallback(() => {
+    const now = new Date();
+    const rel = (now.getHours() + now.getMinutes() / 60) - startHour;
+    return (rel >= 0 && rel <= totalHours) ? rel * HOUR_HEIGHT : null;
+  }, [startHour, totalHours]);
+
+  useEffect(() => {
+    setTop(calcTop());
+    const id = setInterval(() => setTop(calcTop()), 60_000);
+    return () => clearInterval(id);
+  }, [calcTop]);
+
+  if (top === null) return null;
+
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: `${top}px`,
+        left: 0, right: 0,
+        display: "flex",
+        alignItems: "center",
+        pointerEvents: "none",
+        zIndex: 15,
+      }}
+    >
+      <div style={{
+        width: 9, height: 9,
+        borderRadius: "50%",
+        backgroundColor: accent,
+        flexShrink: 0,
+        marginLeft: -4.5,
+        boxShadow: `0 0 0 3px ${accent}44, 0 0 8px ${accent}99`,
+      }} />
+      <div style={{
+        height: 1.5,
+        flex: 1,
+        background: `linear-gradient(to right, ${accent} 0%, ${accent}55 50%, transparent 100%)`,
+      }} />
+    </div>
+  );
+}
 
 // ─── DragGhost ────────────────────────────────────────────────────────────────
 function DragGhost({ appt, x, y }: { appt: Appointment; x: number; y: number }) {
@@ -426,9 +498,9 @@ export default function AgendaPage() {
           <Button variant="outline" size="icon" onClick={() => navigateDate(-1)} className="h-8 w-8 bg-transparent">
             <ChevronLeft className="w-3 h-3" />
           </Button>
-          <div className="flex items-center gap-1.5 min-w-0">
+          <div className="flex items-center gap-1.5 min-w-0 px-2.5 py-1 rounded-lg bg-white/90">
             <Calendar className="w-3.5 h-3.5 text-primary flex-shrink-0" />
-            <span className="text-xs md:text-sm font-medium capitalize truncate max-w-[160px] md:max-w-none">
+            <span className="text-xs md:text-sm font-semibold text-gray-900 capitalize truncate max-w-[160px] md:max-w-none">
               {formattedDate}
             </span>
           </div>
@@ -495,8 +567,29 @@ export default function AgendaPage() {
               <div key={emp.id} className="flex-shrink-0" style={{ width: `${MIN_COL_WIDTH}px` }}>
                 {/* Employee header — sticky top */}
                 <div className="h-10 md:h-12 border-b border-border flex items-center justify-center gap-1.5 px-2 sticky top-0 bg-card/50 backdrop-blur-sm z-10">
-                  <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: emp.color }} />
-                  <span className="text-xs md:text-sm font-medium truncate">{emp.name.split(" ")[0]}</span>
+                  {/* Avatar: foto se disponível, senão inicial */}
+                  <div
+                    style={{
+                      width: 26, height: 26,
+                      borderRadius: "50%",
+                      backgroundColor: emp.color,
+                      boxShadow: `0 0 0 2px ${emp.color}44`,
+                      flexShrink: 0,
+                      overflow: "hidden",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: "#fff",
+                    }}
+                  >
+                    {emp.photoUrl
+                      ? <img src={emp.photoUrl} alt={emp.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      : emp.name.charAt(0).toUpperCase()
+                    }
+                  </div>
+                  <span className="text-xs md:text-sm font-bold text-white uppercase tracking-wide truncate">{emp.name.split(" ")[0]}</span>
                 </div>
 
                 {/* Droppable zone wrapper — identified by data-emp-id */}
