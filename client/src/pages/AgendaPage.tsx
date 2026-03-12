@@ -14,6 +14,7 @@ import AppointmentModal from "@/components/AppointmentModal";
 import { cn } from "@/lib/utils";
 import {
   employeesStore, servicesStore, appointmentsStore,
+  fetchAllData,
   type Appointment,
 } from "@/lib/store";
 
@@ -343,6 +344,21 @@ export default function AgendaPage() {
   const [groupClientName, setGroupClientName] = useState<string | undefined>();
   const [groupId, setGroupId]             = useState<string | undefined>();
   const [refreshKey, setRefreshKey]       = useState(0);
+  const [refreshing, setRefreshing]       = useState(false);
+
+  const handleRefresh = useCallback(async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      await fetchAllData();
+      setRefreshKey(k => k + 1);
+      toast.success("Agenda atualizada!");
+    } catch {
+      toast.error("Erro ao atualizar");
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refreshing]);
 
   // Horários/slots dinâmicos vindos de Configurações
   const [schedCfg, setSchedCfg] = useState(loadScheduleConfig);
@@ -517,8 +533,8 @@ export default function AgendaPage() {
         </div>
 
         <div className="flex items-center gap-1.5 ml-auto">
-          <Button variant="ghost" size="icon" onClick={() => setRefreshKey(k => k + 1)} className="h-8 w-8" title="Atualizar">
-            <RefreshCw className="w-3 h-3" />
+          <Button variant="ghost" size="icon" onClick={handleRefresh} disabled={refreshing} className="h-8 w-8" title="Atualizar">
+            <RefreshCw className={cn("w-3 h-3", refreshing && "animate-spin")} />
           </Button>
           <Badge variant="secondary" className="text-xs hidden md:inline-flex">
             {completedCount}/{appointments.length}
