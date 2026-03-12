@@ -246,6 +246,7 @@ export const clientsStore = {
     const client = toClient(row);
     cache.clients.push(client);
     await addAuditLog("client", client.id, "create", `Cliente "${client.name}" criado`);
+    window.dispatchEvent(new Event("clients_updated"));
     return client;
   },
   async update(id: number, data: Partial<Client>): Promise<Client | null> {
