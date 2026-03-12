@@ -2,7 +2,7 @@
  * ClientesPage — CRUD de clientes com busca, histórico e importação.
  * Design: Glass Dashboard.
  */
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -36,6 +36,16 @@ export default function ClientesPage() {
   const [clearingAll, setClearingAll] = useState(false);
   const [loading, setLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  useEffect(() => {
+    const onUpdate = () => setRefreshKey(k => k + 1);
+    window.addEventListener("clients_updated", onUpdate);
+    window.addEventListener("store_updated", onUpdate);
+    return () => {
+      window.removeEventListener("clients_updated", onUpdate);
+      window.removeEventListener("store_updated", onUpdate);
+    };
+  }, []);
   const [form, setForm] = useState({ name: "", email: "", phone: "", birthDate: "", cpf: "", address: "", notes: "" });
 
   const clients = useMemo(() => clientsStore.list(), [refreshKey]);
