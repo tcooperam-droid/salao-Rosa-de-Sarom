@@ -14,6 +14,7 @@ export interface Employee {
   email: string;
   phone: string;
   color: string;
+  photoUrl: string | null;
   specialties: string[];
   commissionPercent: number;
   workingHours: Record<string, { start: string; end: string; active: boolean }>;
@@ -107,7 +108,7 @@ export interface AuditLog {
 // ─── Mappers (snake_case → camelCase) ────────────────────
 
 function toEmployee(r: any): Employee {
-  return { id: r.id, name: r.name, email: r.email ?? "", phone: r.phone ?? "", color: r.color ?? "#ec4899", specialties: r.specialties ?? [], commissionPercent: Number(r.commission_percent ?? 0), workingHours: r.working_hours ?? {}, active: r.active ?? true, createdAt: r.created_at };
+  return { id: r.id, name: r.name, email: r.email ?? "", phone: r.phone ?? "", color: r.color ?? "#ec4899", photoUrl: r.photo_url ?? null, specialties: r.specialties ?? [], commissionPercent: Number(r.commission_percent ?? 0), workingHours: r.working_hours ?? {}, active: r.active ?? true, createdAt: r.created_at };
 }
 function toService(r: any): Service {
   return { id: r.id, name: r.name, description: r.description ?? null, durationMinutes: r.duration_minutes ?? 60, price: Number(r.price ?? 0), color: r.color ?? "#ec4899", active: r.active ?? true, createdAt: r.created_at };
@@ -157,7 +158,7 @@ export const employeesStore = {
     return cache.employees;
   },
   async create(data: Omit<Employee, "id" | "createdAt">): Promise<Employee> {
-    const { data: row, error } = await supabase.from("employees").insert({ name: data.name, email: data.email, phone: data.phone, color: data.color, specialties: data.specialties, commission_percent: data.commissionPercent, working_hours: data.workingHours, active: data.active }).select().single();
+    const { data: row, error } = await supabase.from("employees").insert({ name: data.name, email: data.email, phone: data.phone, color: data.color, photo_url: data.photoUrl ?? null, specialties: data.specialties, commission_percent: data.commissionPercent, working_hours: data.workingHours, active: data.active }).select().single();
     if (error) throw error;
     const emp = toEmployee(row);
     cache.employees.push(emp);
@@ -170,6 +171,7 @@ export const employeesStore = {
     if (data.email !== undefined) p.email = data.email;
     if (data.phone !== undefined) p.phone = data.phone;
     if (data.color !== undefined) p.color = data.color;
+    if (data.photoUrl !== undefined) p.photo_url = data.photoUrl;
     if (data.specialties !== undefined) p.specialties = data.specialties;
     if (data.commissionPercent !== undefined) p.commission_percent = data.commissionPercent;
     if (data.workingHours !== undefined) p.working_hours = data.workingHours;
