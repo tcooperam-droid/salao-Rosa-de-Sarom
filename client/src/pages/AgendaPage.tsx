@@ -433,7 +433,7 @@ export default function AgendaPage() {
       setDragOverEmpId(getEmpAtX(e.clientX));
     };
 
-    const onUp = (e: PointerEvent) => {
+    const onUp = async (e: PointerEvent) => {
       const deltaY = e.clientY - dragStartY.current;
       const deltaMin = snapToGrid((deltaY / HOUR_HEIGHT) * 60, SNAP_MINUTES);
       const targetEmpId = getEmpAtX(e.clientX) ?? dragging.employeeId;
@@ -443,16 +443,38 @@ export default function AgendaPage() {
       const dur      = new Date(dragging.endTime).getTime() - oldStart.getTime();
       const newEnd   = new Date(newStart.getTime() + dur);
 
-      if (newStart.getHours() < START_HOUR || newEnd.getHours() > END_HOUR) {
-        toast.error("Horário fora do expediente");
-      } else if (deltaMin !== 0 || targetEmpId !== dragging.employeeId) {
-        appointmentsStore.move(dragging.id, targetEmpId, newStart.toISOString(), newEnd.toISOString());
-        toast.success("Agendamento reagendado!");
-        setRefreshKey(k => k + 1);
-      }
-
       setDragging(null);
       setDragOverEmpId(null);
+
+      if (newStart.getHours() < START_HOUR || newEnd.getHours() > END_HOUR) {
+        toast.error("Horário fora do expediente");
+        return;
+      }
+
+      if (deltaMin !== 0 || targetEmpId !== dragging.employeeId) {
+        // Atualização otimista: aplica no cache imediatamente para não sumir
+        appointmentsStore.updateLocal(dragging.id, {
+          employeeId: targetEmpId,
+          startTime: newStart.toISOString(),
+          endTime: newEnd.toISOString(),
+        });
+        setRefreshKey(k => k + 1);
+
+        // Persiste no Supabase em background
+        try {
+          await appointmentsStore.move(dragging.id, targetEmpId, newStart.toISOString(), newEnd.toISOString());
+          toast.success("Agendamento reagendado!");
+        } catch {
+          toast.error("Erro ao mover — revertendo");
+          // Reverte: restaura posição original no cache
+          appointmentsStore.updateLocal(dragging.id, {
+            employeeId: dragging.employeeId,
+            startTime: dragging.startTime,
+            endTime: dragging.endTime,
+          });
+          setRefreshKey(k => k + 1);
+        }
+      }
     };
 
     window.addEventListener("pointermove", onMove);
