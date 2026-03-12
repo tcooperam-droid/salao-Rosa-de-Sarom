@@ -352,6 +352,7 @@ export default function AgendaPage() {
     try {
       await fetchAllData();
       setRefreshKey(k => k + 1);
+      window.dispatchEvent(new Event("store_updated"));
       toast.success("Agenda atualizada!");
     } catch {
       toast.error("Erro ao atualizar");
