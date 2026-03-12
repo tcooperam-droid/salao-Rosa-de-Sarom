@@ -2,7 +2,7 @@
  * Design: Glass Dashboard — Sidebar translúcida com navegação vertical.
  * Tema escuro, accent rosa, backdrop-blur nas superfícies.
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -46,6 +46,55 @@ const NAV_ITEMS: NavItem[] = [
   { path: "/backup", label: "Backup", icon: Database },
   { path: "/configuracoes", label: "Configurações", icon: Settings },
 ];
+
+// ─── SalonLogo ────────────────────────────────────────────────────────────────
+// Adapta o container à proporção real da imagem.
+// Limites: max 120px wide, max 48px tall (sidebar tem 224px de largura).
+// Sem logo: quadrado 32×32 com ícone de tesoura.
+function SalonLogo({ src, size = "md" }: { src: string; size?: "md" | "sm" }) {
+  const imgRef = useRef<HTMLImageElement>(null);
+  const [dims, setDims] = useState<{ w: number; h: number } | null>(null);
+
+  const maxW = size === "sm" ? 80  : 120;
+  const maxH = size === "sm" ? 32  : 48;
+
+  const onLoad = () => {
+    const img = imgRef.current;
+    if (!img) return;
+    const ratio = img.naturalWidth / img.naturalHeight;
+    let w = maxH * ratio;
+    let h = maxH;
+    if (w > maxW) { w = maxW; h = maxW / ratio; }
+    setDims({ w: Math.round(w), h: Math.round(h) });
+  };
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+        width:  dims ? dims.w : (size === "sm" ? 24 : 32),
+        height: dims ? dims.h : (size === "sm" ? 24 : 32),
+        transition: "width 0.2s, height 0.2s",
+      }}
+    >
+      <img
+        ref={imgRef}
+        src={src}
+        alt="logo"
+        onLoad={onLoad}
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "contain",
+          display: "block",
+        }}
+      />
+    </div>
+  );
+}
 
 function loadSalonBranding() {
   try {
@@ -104,15 +153,24 @@ export default function SalaoLayout({ children }: SalaoLayoutProps) {
       >
         {/* Logo */}
         <div className="flex items-center justify-between px-4 py-4 border-b border-border">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0 shadow-lg shadow-primary/25 overflow-hidden">
-              {branding.logo ? (
-                <img src={branding.logo} alt="logo" className="w-full h-full object-contain p-0.5" />
-              ) : (
+          <div className="flex items-center gap-2.5 min-w-0">
+            {branding.logo ? (
+              <SalonLogo src={branding.logo} size="md" />
+            ) : (
+              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0 shadow-lg shadow-primary/25">
                 <Scissors className="w-4 h-4 text-primary-foreground" />
-              )}
-            </div>
-            <span className="font-bold text-base tracking-tight truncate max-w-[120px]">{branding.name}</span>
+              </div>
+            )}
+            <span
+              className="truncate max-w-[120px]"
+              style={{
+                fontFamily: "'Playfair Display', Georgia, serif",
+                fontWeight: 700,
+                fontSize: "13px",
+                textTransform: "uppercase",
+                letterSpacing: "0.18em",
+              }}
+            >{branding.name}</span>
           </div>
           <button
             className="md:hidden text-muted-foreground hover:text-foreground transition-colors"
@@ -179,14 +237,23 @@ export default function SalaoLayout({ children }: SalaoLayoutProps) {
             <Menu className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-primary flex items-center justify-center shadow-sm shadow-primary/25 overflow-hidden">
-              {branding.logo ? (
-                <img src={branding.logo} alt="logo" className="w-full h-full object-contain p-0.5" />
-              ) : (
+            {branding.logo ? (
+              <SalonLogo src={branding.logo} size="sm" />
+            ) : (
+              <div className="w-6 h-6 rounded-md bg-primary flex items-center justify-center shadow-sm shadow-primary/25">
                 <Scissors className="w-3.5 h-3.5 text-primary-foreground" />
-              )}
-            </div>
-            <span className="font-bold text-sm truncate max-w-[140px]">{branding.name}</span>
+              </div>
+            )}
+            <span
+              className="truncate max-w-[140px]"
+              style={{
+                fontFamily: "'Playfair Display', Georgia, serif",
+                fontWeight: 700,
+                fontSize: "12px",
+                textTransform: "uppercase",
+                letterSpacing: "0.18em",
+              }}
+            >{branding.name}</span>
           </div>
           {switchable && (
             <div className="ml-auto">
