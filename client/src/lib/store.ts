@@ -341,6 +341,10 @@ export const appointmentsStore = {
   async move(id: number, employeeId: number, startTime: string, endTime: string): Promise<Appointment | null> {
     return this.update(id, { employeeId, startTime, endTime });
   },
+  updateLocal(id: number, data: Partial<Appointment>): void {
+    const idx = cache.appointments.findIndex(a => a.id === id);
+    if (idx !== -1) cache.appointments[idx] = { ...cache.appointments[idx], ...data };
+  },
 };
 
 // ─── Cash Sessions ───────────────────────────────────────
