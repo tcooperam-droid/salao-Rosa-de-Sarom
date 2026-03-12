@@ -91,7 +91,14 @@ export default function AppointmentModal({
 
   const employees = useMemo(() => employeesStore.list(true), [open]);
   const servicesData = useMemo(() => servicesStore.list(true), [open]);
-  const allClients = useMemo(() => clientsStore.list(), [open]);
+  const [clientsKey, setClientsKey] = useState(0);
+  const allClients = useMemo(() => clientsStore.list(), [open, clientsKey]);
+
+  useEffect(() => {
+    const onUpdate = () => setClientsKey(k => k + 1);
+    window.addEventListener("clients_updated", onUpdate);
+    return () => window.removeEventListener("clients_updated", onUpdate);
+  }, []);
 
   // Filtrar clientes por busca
   const filteredClients = useMemo(() => {
@@ -244,6 +251,18 @@ export default function AppointmentModal({
 
     setLoading(true);
     try {
+      // Se não selecionou um cliente existente, cria automaticamente
+      let resolvedClientId = clientId;
+      if (!resolvedClientId) {
+        const newClient = await clientsStore.create({
+          name: clientName.trim(),
+          email: newClientEmail.trim() || null,
+          phone: newClientPhone.trim() || null,
+          birthDate: null,
+          notes: null,
+        });
+        resolvedClientId = newClient.id;
+      }
       if (isEditing && appointment) {
         // Edição: atualiza o agendamento existente normalmente
         const resolvedGroupId = appointment?.groupId ?? undefined;
@@ -263,7 +282,7 @@ export default function AppointmentModal({
 
       if (selectedServices.length <= 1) {
         // Caso normal: 1 serviço, 1 agendamento
-        await appointmentsStore.create(buildPayload(gid));
+        await appointmentsStore.create({ ...buildPayload(gid), clientId: resolvedClientId });
         toast.success("Agendamento criado!");
       } else {
         // Múltiplos serviços: cria N agendamentos encadeados em sequência
@@ -273,7 +292,7 @@ export default function AppointmentModal({
           const svcEnd   = addMinutes(svcStart, svc.durationMinutes || 60);
           await appointmentsStore.create({
             clientName:    clientName.trim(),
-            clientId:      clientId,
+            clientId:      resolvedClientId,
             employeeId:    empId,
             startTime:     svcStart.toISOString(),
             endTime:       svcEnd.toISOString(),
