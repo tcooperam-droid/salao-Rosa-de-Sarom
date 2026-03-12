@@ -1,7 +1,7 @@
 /**
  * FuncionariosPage — CRUD de funcionários com horários de trabalho.
  */
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +48,13 @@ export default function FuncionariosPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const employees = useMemo(() => employeesStore.list(false), [refreshKey]);
+
+  // Atualiza quando o botão de refresh global (AgendaPage) for acionado
+  useEffect(() => {
+    const onUpdate = () => setRefreshKey(k => k + 1);
+    window.addEventListener("store_updated", onUpdate);
+    return () => window.removeEventListener("store_updated", onUpdate);
+  }, []);
 
   const openCreate = () => { setEditingId(null); setForm(defaultForm()); setModalOpen(true); };
 
