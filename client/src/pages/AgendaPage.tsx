@@ -63,6 +63,8 @@ const STATUS_BORDER: Record<string, string> = {
 };
 
 // ─── AppointmentBlock ─────────────────────────────────────────────────────────
+const LONG_PRESS_MS = 500;
+
 const AppointmentBlock = memo(function AppointmentBlock({
   appt,
   color,
@@ -83,37 +85,71 @@ const AppointmentBlock = memo(function AppointmentBlock({
   const top    = timeToPixels(start, startHour);
   const height = Math.max(durationToPixels(start, end), 28);
 
-  const pendingDrag = useRef<{ y: number; x: number } | null>(null);
-  const didDrag = useRef(false);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pointerStart   = useRef<{ y: number; x: number } | null>(null);
+  const dragReady      = useRef(false); // long press concluído
+  const didDrag        = useRef(false); // drag efetivamente iniciado
+  const [pressing, setPressing] = useState(false); // feedback visual
+
+  const cancelLongPress = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    pointerStart.current = null;
+    dragReady.current = false;
+    setPressing(false);
+  }, []);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     if (e.button !== 0 && e.pointerType === "mouse") return;
     e.stopPropagation();
     didDrag.current = false;
-    pendingDrag.current = { y: e.clientY, x: e.clientX };
+    dragReady.current = false;
+    pointerStart.current = { y: e.clientY, x: e.clientX };
     e.currentTarget.setPointerCapture(e.pointerId);
+
+    setPressing(true);
+    longPressTimer.current = setTimeout(() => {
+      // Long press atingido — pronto para arrastar
+      dragReady.current = true;
+      setPressing(false);
+      // Vibração háptica se disponível
+      if (navigator.vibrate) navigator.vibrate(40);
+    }, LONG_PRESS_MS);
   }, []);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (!pendingDrag.current) return;
-    const dy = e.clientY - pendingDrag.current.y;
-    const dx = e.clientX - pendingDrag.current.x;
-    if (!didDrag.current && Math.sqrt(dy * dy + dx * dx) > 6) {
-      didDrag.current = true;
-      onDragStart(appt, pendingDrag.current.y, pendingDrag.current.x);
+    if (!pointerStart.current) return;
+    const dy = e.clientY - pointerStart.current.y;
+    const dx = e.clientX - pointerStart.current.x;
+    const dist = Math.sqrt(dy * dy + dx * dx);
+
+    // Se mover mais de 10px antes do long press, cancela
+    if (!dragReady.current && dist > 10) {
+      cancelLongPress();
+      return;
     }
-  }, [appt, onDragStart]);
+
+    // Long press concluído — inicia drag ao mover
+    if (dragReady.current && !didDrag.current && dist > 4) {
+      didDrag.current = true;
+      onDragStart(appt, pointerStart.current.y, pointerStart.current.x);
+    }
+  }, [appt, onDragStart, cancelLongPress]);
 
   const handlePointerUp = useCallback(() => {
-    pendingDrag.current = null;
-  }, []);
+    cancelLongPress();
+    didDrag.current = false;
+  }, [cancelLongPress]);
 
   return (
     <div
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
-      onClick={(e) => { e.stopPropagation(); if (!didDrag.current) onClick(); }}
+      onPointerCancel={cancelLongPress}
+      onClick={(e) => { e.stopPropagation(); if (!didDrag.current && !dragReady.current) onClick(); }}
       style={{
         position: "absolute",
         top: `${top}px`,
@@ -124,6 +160,9 @@ const AppointmentBlock = memo(function AppointmentBlock({
         borderLeft: `3px solid ${color}`,
         zIndex: 10,
         touchAction: "none",
+        transition: pressing ? "none" : "transform 0.15s, box-shadow 0.15s",
+        transform: pressing ? "scale(0.97)" : "scale(1)",
+        boxShadow: pressing ? `0 0 0 2px ${color}88` : "none",
       }}
       className={cn(
         "rounded-md px-2 py-1 cursor-grab active:cursor-grabbing select-none overflow-hidden",
@@ -605,7 +644,7 @@ export default function AgendaPage() {
             employees.map(emp => (
               <div key={emp.id} className="flex-shrink-0" style={{ width: `${MIN_COL_WIDTH}px` }}>
                 {/* Employee header — sticky top */}
-                <div className="h-10 md:h-12 border-b border-border flex items-center justify-center gap-1.5 px-2 sticky top-0 bg-card/50 backdrop-blur-sm z-10">
+                <div className="h-10 md:h-12 border-b border-border flex items-center justify-center gap-1.5 px-2 sticky top-0 bg-card/80 backdrop-blur-sm z-20">
                   {/* Avatar: foto se disponível, senão inicial */}
                   <div
                     style={{
