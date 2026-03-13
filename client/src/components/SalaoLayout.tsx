@@ -185,8 +185,8 @@ export default function SalaoLayout({ children }: SalaoLayoutProps) {
           {/* Logo */}
           <div className="mb-3 flex items-center justify-center"
             style={{
-              width: 64, height: 64,
-              borderRadius: 16,
+              width: 96, height: 96,
+              borderRadius: 20,
               background: branding.logo ? "transparent" : "linear-gradient(135deg, rgba(236,72,153,0.3), rgba(236,72,153,0.1))",
               border: branding.logo ? "none" : "1.5px solid rgba(236,72,153,0.35)",
               boxShadow: "0 4px 24px rgba(236,72,153,0.2)",
