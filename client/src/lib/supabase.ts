@@ -13,3 +13,13 @@ if (!supabaseUrl || !supabaseKey) {
 }
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Login anônimo automático — necessário para RLS funcionar.
+// O Supabase gera uma sessão anônima persistida no localStorage.
+// Sem isso, todas as queries serão bloqueadas pelo RLS.
+(async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    await supabase.auth.signInAnonymously();
+  }
+})();
