@@ -110,6 +110,21 @@ function loadSalonBranding() {
   return { name: "Salão Bella", logo: "" };
 }
 
+function loadBackground(): React.CSSProperties {
+  try {
+    const saved = localStorage.getItem("salon_config");
+    if (!saved) return {};
+    const c = JSON.parse(saved);
+    if (c.bgType === "solid" && c.bgColor)
+      return { backgroundColor: c.bgColor };
+    if (c.bgType === "gradient" && c.bgGradientFrom && c.bgGradientTo)
+      return { background: `linear-gradient(${c.bgGradientDir || "135deg"}, ${c.bgGradientFrom}, ${c.bgGradientTo})` };
+    if (c.bgType === "image" && c.bgImageUrl)
+      return { backgroundImage: `url(${c.bgImageUrl})`, backgroundSize: "cover", backgroundPosition: "center", backgroundRepeat: "no-repeat" };
+  } catch { /* ignore */ }
+  return {};
+}
+
 interface SalaoLayoutProps {
   children: React.ReactNode;
 }
@@ -119,10 +134,14 @@ export default function SalaoLayout({ children }: SalaoLayoutProps) {
   const { theme, toggleTheme, switchable } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [branding, setBranding] = useState(loadSalonBranding);
+  const [bgStyle, setBgStyle] = useState(loadBackground);
 
-  // Atualiza nome/logo imediatamente quando Configurações salvar
+  // Atualiza nome/logo e fundo imediatamente quando Configurações salvar
   useEffect(() => {
-    const onUpdate = () => setBranding(loadSalonBranding());
+    const onUpdate = () => {
+      setBranding(loadSalonBranding());
+      setBgStyle(loadBackground());
+    };
     window.addEventListener("salon_config_updated", onUpdate);
     return () => window.removeEventListener("salon_config_updated", onUpdate);
   }, []);
@@ -133,7 +152,7 @@ export default function SalaoLayout({ children }: SalaoLayoutProps) {
   };
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
+    <div className="flex h-screen bg-background overflow-hidden" style={bgStyle}>
       {/* Mobile overlay */}
       {mobileOpen && (
         <div
