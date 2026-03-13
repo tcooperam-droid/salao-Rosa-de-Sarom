@@ -109,14 +109,18 @@ const AppointmentBlock = memo(function AppointmentBlock({
     pointerStart.current = { y: e.clientY, x: e.clientX };
     e.currentTarget.setPointerCapture(e.pointerId);
 
-    setPressing(true);
-    longPressTimer.current = setTimeout(() => {
-      // Long press atingido — pronto para arrastar
+    if (e.pointerType === "mouse") {
+      // Mouse: ativa drag direto ao mover, sem long press
       dragReady.current = true;
-      setPressing(false);
-      // Vibração háptica se disponível
-      if (navigator.vibrate) navigator.vibrate(40);
-    }, LONG_PRESS_MS);
+    } else {
+      // Touch: long press de 500ms com feedback visual
+      setPressing(true);
+      longPressTimer.current = setTimeout(() => {
+        dragReady.current = true;
+        setPressing(false);
+        if (navigator.vibrate) navigator.vibrate(40);
+      }, LONG_PRESS_MS);
+    }
   }, []);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
@@ -125,13 +129,13 @@ const AppointmentBlock = memo(function AppointmentBlock({
     const dx = e.clientX - pointerStart.current.x;
     const dist = Math.sqrt(dy * dy + dx * dx);
 
-    // Se mover mais de 10px antes do long press, cancela
-    if (!dragReady.current && dist > 10) {
+    // Touch: se mover mais de 10px antes do long press, cancela (vira scroll)
+    if (e.pointerType !== "mouse" && !dragReady.current && dist > 10) {
       cancelLongPress();
       return;
     }
 
-    // Long press concluído — inicia drag ao mover
+    // Drag ativo — inicia ao mover
     if (dragReady.current && !didDrag.current && dist > 4) {
       didDrag.current = true;
       onDragStart(appt, pointerStart.current.y, pointerStart.current.x);
