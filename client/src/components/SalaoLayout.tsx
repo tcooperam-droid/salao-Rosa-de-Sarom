@@ -170,33 +170,53 @@ export default function SalaoLayout({ children }: SalaoLayoutProps) {
           mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         )}
       >
-        {/* Logo */}
-        <div className="flex items-center justify-between px-4 py-4 border-b border-border">
-          <div className="flex items-center gap-2.5 min-w-0">
-            {branding.logo ? (
-              <SalonLogo src={branding.logo} size="md" />
-            ) : (
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0 shadow-lg shadow-primary/25">
-                <Scissors className="w-4 h-4 text-primary-foreground" />
-              </div>
-            )}
-            <span
-              className="truncate max-w-[120px]"
-              style={{
-                fontFamily: "'Playfair Display', Georgia, serif",
-                fontWeight: 700,
-                fontSize: "13px",
-                textTransform: "uppercase",
-                letterSpacing: "0.18em",
-              }}
-            >{branding.name}</span>
-          </div>
+        {/* Logo / Identidade */}
+        <div className="relative flex flex-col items-center px-4 pt-6 pb-4 border-b border-border"
+          style={{ background: "linear-gradient(180deg, rgba(236,72,153,0.12) 0%, transparent 100%)" }}
+        >
+          {/* Botão fechar — só mobile */}
           <button
-            className="md:hidden text-muted-foreground hover:text-foreground transition-colors"
+            className="md:hidden absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors"
             onClick={() => setMobileOpen(false)}
           >
             <X className="w-4 h-4" />
           </button>
+
+          {/* Logo */}
+          <div className="mb-3 flex items-center justify-center"
+            style={{
+              width: 64, height: 64,
+              borderRadius: 16,
+              background: branding.logo ? "transparent" : "linear-gradient(135deg, rgba(236,72,153,0.3), rgba(236,72,153,0.1))",
+              border: branding.logo ? "none" : "1.5px solid rgba(236,72,153,0.35)",
+              boxShadow: "0 4px 24px rgba(236,72,153,0.2)",
+              overflow: "hidden",
+              flexShrink: 0,
+            }}
+          >
+            {branding.logo ? (
+              <img src={branding.logo} alt="logo"
+                style={{ width: "100%", height: "100%", objectFit: "contain", padding: 4 }} />
+            ) : (
+              <Scissors className="w-7 h-7 text-primary" />
+            )}
+          </div>
+
+          {/* Nome */}
+          <span
+            className="text-center leading-tight"
+            style={{
+              fontFamily: "'Playfair Display', Georgia, serif",
+              fontWeight: 700,
+              fontSize: "15px",
+              textTransform: "uppercase",
+              letterSpacing: "0.2em",
+              background: "linear-gradient(135deg, #ffffff 0%, rgba(236,72,153,0.9) 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              maxWidth: "100%",
+            }}
+          >{branding.name}</span>
         </div>
 
         {/* Nav */}
@@ -251,38 +271,40 @@ export default function SalaoLayout({ children }: SalaoLayoutProps) {
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Mobile top bar */}
-        <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-border bg-card/50 backdrop-blur-lg">
+        <div className="md:hidden flex items-center gap-3 px-4 py-2.5 border-b border-border bg-card/50 backdrop-blur-lg">
           <button onClick={() => setMobileOpen(true)} className="text-muted-foreground hover:text-foreground transition-colors">
             <Menu className="w-5 h-5" />
           </button>
-          <div className="flex items-center gap-2">
-            {branding.logo ? (
-              <SalonLogo src={branding.logo} size="sm" />
-            ) : (
-              <div className="w-6 h-6 rounded-md bg-primary flex items-center justify-center shadow-sm shadow-primary/25">
-                <Scissors className="w-3.5 h-3.5 text-primary-foreground" />
-              </div>
-            )}
-            <span
-              className="truncate max-w-[140px]"
-              style={{
-                fontFamily: "'Playfair Display', Georgia, serif",
-                fontWeight: 700,
-                fontSize: "12px",
-                textTransform: "uppercase",
-                letterSpacing: "0.18em",
-              }}
-            >{branding.name}</span>
+          <div className="flex items-center gap-2.5 flex-1 justify-center">
+            {/* Logo mobile */}
+            <div style={{
+              width: 32, height: 32, borderRadius: 8, overflow: "hidden", flexShrink: 0,
+              background: branding.logo ? "transparent" : "linear-gradient(135deg, rgba(236,72,153,0.3), rgba(236,72,153,0.1))",
+              border: branding.logo ? "none" : "1.5px solid rgba(236,72,153,0.35)",
+              boxShadow: "0 2px 10px rgba(236,72,153,0.2)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              {branding.logo
+                ? <img src={branding.logo} alt="logo" style={{ width: "100%", height: "100%", objectFit: "contain", padding: 2 }} />
+                : <Scissors className="w-4 h-4 text-primary" />
+              }
+            </div>
+            {/* Nome mobile */}
+            <span style={{
+              fontFamily: "'Playfair Display', Georgia, serif",
+              fontWeight: 700,
+              fontSize: "13px",
+              textTransform: "uppercase",
+              letterSpacing: "0.2em",
+              background: "linear-gradient(135deg, #ffffff 0%, rgba(236,72,153,0.9) 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}>{branding.name}</span>
           </div>
           {switchable && (
-            <div className="ml-auto">
-              <button
-                onClick={toggleTheme}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-              </button>
-            </div>
+            <button onClick={toggleTheme} className="text-muted-foreground hover:text-foreground transition-colors">
+              {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
           )}
         </div>
 
