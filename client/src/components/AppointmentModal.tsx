@@ -83,6 +83,7 @@ export default function AppointmentModal({
 
   // Appointment state
   const [employeeId, setEmployeeId]             = useState<string>("");
+  const [apptDate, setApptDate]                 = useState(selectedDate);
   const [startTime, setStartTime]               = useState("09:00");
   const [status, setStatus]                     = useState("scheduled");
   const [notes, setNotes]                       = useState("");
@@ -141,6 +142,7 @@ export default function AppointmentModal({
       setNewClientEmail("");
       setNewClientPhone("");
       setEmployeeId(String(appointment.employeeId));
+      setApptDate(format(new Date(appointment.startTime), "yyyy-MM-dd"));
       setStartTime(format(new Date(appointment.startTime), "HH:mm"));
       setStatus(appointment.status);
       setNotes(appointment.notes ?? "");
@@ -168,6 +170,7 @@ export default function AppointmentModal({
       setNewClientEmail("");
       setNewClientPhone("");
       setEmployeeId(defaultEmployeeId ? String(defaultEmployeeId) : "");
+      setApptDate(selectedDate);
       setStartTime(`${h}:${m}`);
       setStatus("scheduled");
       setNotes("");
@@ -194,7 +197,7 @@ export default function AppointmentModal({
 
   const buildPayload = (gid?: string | null) => {
     const [sh, sm] = startTime.split(":").map(Number);
-    const base     = parseISO(selectedDate);
+    const base     = parseISO(apptDate);
     const startDt  = new Date(base.getFullYear(), base.getMonth(), base.getDate(), sh, sm);
     const endDt    = addMinutes(startDt, totalDuration || 60);
     return {
@@ -274,7 +277,7 @@ export default function AppointmentModal({
 
       // Criação: se há mais de 1 serviço, gera um bloco separado por serviço
       const [sh, sm] = startTime.split(":").map(Number);
-      const base = parseISO(selectedDate);
+      const base = parseISO(apptDate);
       const empId = parseInt(employeeId);
       const gid = selectedServices.length > 1
         ? (incomingGroupId ?? newGroupId())
@@ -477,7 +480,7 @@ export default function AppointmentModal({
             )}
           </div>
 
-          {/* Employee + Time */}
+          {/* Employee + Date + Time */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label>Funcionário *</Label>
@@ -496,6 +499,10 @@ export default function AppointmentModal({
               </Select>
             </div>
             <div className="space-y-1">
+              <Label>Data *</Label>
+              <Input type="date" value={apptDate} onChange={e => setApptDate(e.target.value)} />
+            </div>
+            <div className="space-y-1 col-span-2">
               <Label>Horário de início *</Label>
               <Input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} />
             </div>
