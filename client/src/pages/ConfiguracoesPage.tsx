@@ -10,8 +10,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { Settings, Building2, Clock, Bell, Palette, Save, ImagePlus, Trash2, Scissors } from "lucide-react";
+import { Settings, Building2, Clock, Bell, Palette, Save, ImagePlus, Trash2, Scissors, Monitor } from "lucide-react";
 import { applyAccentColor } from "@/contexts/ThemeContext";
+
+type BgType = "default" | "solid" | "gradient" | "image";
 
 interface SalonConfig {
   salonName: string;
@@ -24,6 +26,12 @@ interface SalonConfig {
   notifyEmail: boolean;
   accentColor: string;
   logoUrl: string;
+  bgType: BgType;
+  bgColor: string;
+  bgGradientFrom: string;
+  bgGradientTo: string;
+  bgGradientDir: string;
+  bgImageUrl: string;
 }
 
 const DEFAULT_CONFIG: SalonConfig = {
@@ -37,7 +45,21 @@ const DEFAULT_CONFIG: SalonConfig = {
   notifyEmail: false,
   accentColor: "#ec4899",
   logoUrl: "",
+  bgType: "default",
+  bgColor: "#09091a",
+  bgGradientFrom: "#09091a",
+  bgGradientTo: "#1a0929",
+  bgGradientDir: "135deg",
+  bgImageUrl: "",
 };
+
+const GRADIENT_PRESETS = [
+  { from: "#09091a", to: "#1a0929", label: "Rosa noturno" },
+  { from: "#0a0a1a", to: "#001a2e", label: "Azul profundo" },
+  { from: "#0d1a0d", to: "#0a1a0d", label: "Verde floresta" },
+  { from: "#1a0a00", to: "#2e1000", label: "Âmbar quente" },
+  { from: "#1a1a1a", to: "#2e2e2e", label: "Cinza elegante" },
+];
 
 const ACCENT_COLORS = [
   "#ec4899", "#8b5cf6", "#06b6d4", "#10b981", "#f59e0b",
@@ -47,7 +69,8 @@ const ACCENT_COLORS = [
 export default function ConfiguracoesPage() {
   const [config, setConfig] = useState<SalonConfig>(DEFAULT_CONFIG);
   const [loading, setLoading] = useState(false);
-  const logoInputRef = useRef<HTMLInputElement>(null);
+  const logoInputRef  = useRef<HTMLInputElement>(null);
+  const bgImgInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     try {
@@ -59,17 +82,21 @@ export default function ConfiguracoesPage() {
   const handleLogoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 500 * 1024) {
-      toast.error("Imagem muito grande. Use uma imagem menor que 500KB.");
-      return;
-    }
+    if (file.size > 500 * 1024) { toast.error("Imagem muito grande. Use uma imagem menor que 500KB."); return; }
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      const base64 = ev.target?.result as string;
-      updateConfig("logoUrl", base64);
-    };
+    reader.onload = (ev) => updateConfig("logoUrl", ev.target?.result as string);
     reader.readAsDataURL(file);
     if (logoInputRef.current) logoInputRef.current.value = "";
+  };
+
+  const handleBgImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 3 * 1024 * 1024) { toast.error("Imagem muito grande. Use uma imagem menor que 3MB."); return; }
+    const reader = new FileReader();
+    reader.onload = (ev) => updateConfig("bgImageUrl", ev.target?.result as string);
+    reader.readAsDataURL(file);
+    if (bgImgInputRef.current) bgImgInputRef.current.value = "";
   };
 
   const handleSave = () => {
@@ -216,7 +243,9 @@ export default function ConfiguracoesPage() {
             <Palette className="w-4 h-4 text-primary" />Aparência
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
+
+          {/* Cor de acento */}
           <div className="space-y-2">
             <Label>Cor principal</Label>
             <div className="flex gap-2 flex-wrap">
@@ -226,6 +255,128 @@ export default function ConfiguracoesPage() {
                   style={{ backgroundColor: c }} />
               ))}
             </div>
+          </div>
+
+          <Separator />
+
+          {/* Fundo do app */}
+          <div className="space-y-3">
+            <Label className="flex items-center gap-2">
+              <Monitor className="w-3.5 h-3.5" />Fundo do app
+            </Label>
+
+            {/* Tipo de fundo */}
+            <div className="grid grid-cols-3 gap-2">
+              {(["default", "solid", "gradient", "image"] as BgType[]).map(type => {
+                const labels = { default: "Padrão", solid: "Cor sólida", gradient: "Gradiente", image: "Imagem" };
+                return (
+                  <button key={type} type="button"
+                    onClick={() => updateConfig("bgType", type)}
+                    className={`px-3 py-2 rounded-lg text-xs font-medium border transition-all ${
+                      config.bgType === type
+                        ? "border-primary bg-primary/20 text-primary"
+                        : "border-border bg-card/30 text-muted-foreground hover:border-primary/50"
+                    }`}
+                  >
+                    {labels[type]}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Cor sólida */}
+            {config.bgType === "solid" && (
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Escolha a cor</Label>
+                <div className="flex items-center gap-3">
+                  <input type="color" value={config.bgColor}
+                    onChange={e => updateConfig("bgColor", e.target.value)}
+                    className="w-12 h-10 rounded-lg border border-border cursor-pointer bg-transparent" />
+                  <div className="w-full h-10 rounded-lg border border-border" style={{ backgroundColor: config.bgColor }} />
+                </div>
+              </div>
+            )}
+
+            {/* Gradiente */}
+            {config.bgType === "gradient" && (
+              <div className="space-y-3">
+                <Label className="text-xs text-muted-foreground">Presets</Label>
+                <div className="flex gap-2 flex-wrap">
+                  {GRADIENT_PRESETS.map(p => (
+                    <button key={p.label} type="button"
+                      onClick={() => { updateConfig("bgGradientFrom", p.from); updateConfig("bgGradientTo", p.to); }}
+                      className="w-10 h-10 rounded-full border-2 border-transparent hover:border-white/50 transition-all"
+                      style={{ background: `linear-gradient(135deg, ${p.from}, ${p.to})` }}
+                      title={p.label}
+                    />
+                  ))}
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Cor inicial</Label>
+                    <div className="flex items-center gap-2">
+                      <input type="color" value={config.bgGradientFrom}
+                        onChange={e => updateConfig("bgGradientFrom", e.target.value)}
+                        className="w-10 h-8 rounded border border-border cursor-pointer bg-transparent" />
+                      <span className="text-xs text-muted-foreground">{config.bgGradientFrom}</span>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Cor final</Label>
+                    <div className="flex items-center gap-2">
+                      <input type="color" value={config.bgGradientTo}
+                        onChange={e => updateConfig("bgGradientTo", e.target.value)}
+                        className="w-10 h-8 rounded border border-border cursor-pointer bg-transparent" />
+                      <span className="text-xs text-muted-foreground">{config.bgGradientTo}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Direção</Label>
+                  <div className="flex gap-2 flex-wrap">
+                    {[["↘ Diagonal", "135deg"], ["↓ Vertical", "180deg"], ["→ Horizontal", "90deg"], ["↗ Anti-diag", "45deg"]].map(([label, val]) => (
+                      <button key={val} type="button"
+                        onClick={() => updateConfig("bgGradientDir", val)}
+                        className={`px-2.5 py-1 rounded text-xs border transition-all ${
+                          config.bgGradientDir === val ? "border-primary bg-primary/20 text-primary" : "border-border text-muted-foreground hover:border-primary/50"
+                        }`}
+                      >{label}</button>
+                    ))}
+                  </div>
+                </div>
+                {/* Preview */}
+                <div className="w-full h-12 rounded-lg border border-border"
+                  style={{ background: `linear-gradient(${config.bgGradientDir}, ${config.bgGradientFrom}, ${config.bgGradientTo})` }} />
+              </div>
+            )}
+
+            {/* Imagem */}
+            {config.bgType === "image" && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-24 h-16 rounded-lg border border-dashed border-border bg-secondary/30 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                    {config.bgImageUrl
+                      ? <img src={config.bgImageUrl} alt="fundo" className="w-full h-full object-cover" />
+                      : <span className="text-[10px] text-muted-foreground text-center px-1">sem imagem</span>
+                    }
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Button type="button" variant="outline" size="sm" className="gap-2 text-xs" onClick={() => bgImgInputRef.current?.click()}>
+                      <ImagePlus className="w-3.5 h-3.5" />
+                      {config.bgImageUrl ? "Trocar imagem" : "Escolher imagem"}
+                    </Button>
+                    {config.bgImageUrl && (
+                      <Button type="button" variant="ghost" size="sm" className="gap-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                        onClick={() => updateConfig("bgImageUrl", "")}>
+                        <Trash2 className="w-3.5 h-3.5" />Remover
+                      </Button>
+                    )}
+                    <p className="text-[10px] text-muted-foreground">PNG, JPG. Máx 3MB.</p>
+                  </div>
+                </div>
+                <input ref={bgImgInputRef} type="file" accept="image/png,image/jpeg,image/webp" style={{ display: "none" }} onChange={handleBgImageSelect} />
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
