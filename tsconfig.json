@@ -1,31 +1,27 @@
 {
   "compilerOptions": {
-    "isolatedModules": true,
-    "lib": ["es2022", "esnext", "dom", "dom.iterable"],
+    "target": "es2022",
+    "lib": ["esnext", "dom", "dom.iterable"],
     "module": "esnext",
     "moduleResolution": "bundler",
-    "noEmit": true,
-    "noEmitOnError": true,
-    "noFallthroughCasesInSwitch": true,
-    "noImplicitReturns": true,
-    "noImplicitAny": true,
-    "noImplicitThis": true,
-    "strictNullChecks": true,
-    "strictFunctionTypes": false,
-    "strictBindCallApply": true,
-    "strictPropertyInitialization": true,
-    "useUnknownInCatchVariables": true,
-    "alwaysStrict": true,
-    "skipLibCheck": true,
-    "target": "es2022",
     "jsx": "preserve",
+    "strict": true,
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "useUnknownInCatchVariables": true,
     "types": ["node", "vite/client"],
+    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     }
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "build", "dist", "**/*.test.ts"]
+  "exclude": ["node_modules", "dist", "build", "**/*.test.ts"]
 }
