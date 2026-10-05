@@ -71,6 +71,18 @@ interface PersonalLLMToolCall {
   arguments: string;
 }
 
+interface PersonalLLMContinuationMessage {
+  role: "assistant" | "tool";
+  content: string | null;
+  tool_call_id?: string;
+  name?: string;
+  tool_calls?: Array<{
+    id: string;
+    type: "function";
+    function: { name: string; arguments: string };
+  }>;
+}
+
 interface PersonalLLMResult {
   content: string | null;
   toolCalls?: PersonalLLMToolCall[];
@@ -81,7 +93,11 @@ interface PersonalLLMResult {
  * ferramentas formais anexadas. O próprio modelo decide se responde direto
  * (content) ou pede para executar uma ferramenta (toolCalls).
  */
-async function callPersonalLLM(scope: string, message: string): Promise<PersonalLLMResult> {
+async function callPersonalLLM(
+  scope: string,
+  message: string,
+  continuation: PersonalLLMContinuationMessage[] = [],
+): Promise<PersonalLLMResult> {
   if (!config) return { content: "O agente pessoal ainda não foi configurado." };
   const endpoint = getAgentEndpoint(config.apiEndpoint);
   const memory = loadMemory(scope);
@@ -100,6 +116,7 @@ async function callPersonalLLM(scope: string, message: string): Promise<Personal
         { role: "system", content: system },
         ...history.map((item) => ({ role: item.role, content: item.content })),
         { role: "user", content: message },
+        ...continuation,
       ],
       temperature: 0.35,
       max_tokens: 1400,
@@ -165,9 +182,7 @@ async function callTechnicalAgent(scope: string, message: string, extraContext =
     body: JSON.stringify({
       question: message,
       appContext: `${buildAppContext()}\n\nDIAGNÓSTICO ESTRUTURADO:\n${extraContext}`.slice(0, 10000),
-      // O diagnóstico automático usa evidências textuais. A captura visual fica
-      // disponível para a UI, mas não é anexada a este request para evitar 413
-      // em provedores que contam base64 contra o limite de entrada.
+        screenImage: screenImage ? screenImage.slice(0, 350000) : undefined,
       messages: history,
     }),
   });
@@ -299,30 +314,70 @@ export async function sendPersonalMessage(text: string): Promise<PersonalAgentRe
   const scope = currentScope();
   if (!message) throw new Error("Digite uma mensagem antes de enviar.");
 
-  const llmResult = await callPersonalLLM(scope, message);
-  const toolCall = llmResult.toolCalls?.[0];
+  let continuation: PersonalLLMContinuationMessage[] = [];
+  let responseText = "";
+  let routedTo: "personal" | "scheduler" = "personal";
+  let actionExecuted: boolean | undefined;
+  let navigateTo: string | undefined;
+  let citations: WebCitation[] | undefined;
+  let lastSchedulerMessageId: string | undefined;
+  let lastToolText = "";
 
-  if (toolCall) {
-    const outcome = await executeToolCall(scope, toolCall.name, toolCall.arguments);
-    const user = userMessage(message, outcome.routedTo);
-    const assistant = { ...assistantMessage(outcome.text, outcome.routedTo), citations: outcome.citations };
-    saveExchange(scope, user, assistant);
-    return {
-      text: outcome.text,
-      messageId: outcome.schedulerMessageId || assistant.id,
-      routedTo: outcome.routedTo,
-      actionExecuted: outcome.actionExecuted,
-      navigateTo: outcome.navigateTo,
-      userMessage: message,
-      citations: outcome.citations,
-    };
+  // O agente pessoal pode investigar, consultar o scheduler e só então
+  // responder. O limite evita chamadas infinitas e devolve cada resultado
+  // real ao modelo antes da próxima decisão.
+  for (let round = 0; round < 3; round += 1) {
+    const llmResult = await callPersonalLLM(scope, message, continuation);
+    const toolCalls = llmResult.toolCalls ?? [];
+
+    if (toolCalls.length === 0) {
+      responseText = llmResult.content || lastToolText || "Não consegui gerar uma resposta.";
+      break;
+    }
+
+    continuation = [
+      ...continuation,
+      {
+        role: "assistant",
+        content: llmResult.content,
+        tool_calls: toolCalls.map((toolCall) => ({
+          id: toolCall.id,
+          type: "function" as const,
+          function: { name: toolCall.name, arguments: toolCall.arguments },
+        })),
+      },
+    ];
+
+    for (const toolCall of toolCalls) {
+      const outcome = await executeToolCall(scope, toolCall.name, toolCall.arguments);
+      lastToolText = outcome.text;
+      if (outcome.routedTo === "scheduler") routedTo = "scheduler";
+      actionExecuted = outcome.actionExecuted ?? actionExecuted;
+      navigateTo = outcome.navigateTo ?? navigateTo;
+      citations = outcome.citations ?? citations;
+      lastSchedulerMessageId = outcome.schedulerMessageId ?? lastSchedulerMessageId;
+      continuation.push({
+        role: "tool",
+        tool_call_id: toolCall.id,
+        name: toolCall.name,
+        content: outcome.text,
+      });
+    }
   }
 
-  const responseText = llmResult.content || "Não consegui gerar uma resposta.";
-  const user = userMessage(message, "personal");
-  const assistant = assistantMessage(responseText, "personal");
+  if (!responseText) responseText = lastToolText || "Não consegui concluir a análise.";
+  const user = userMessage(message, routedTo);
+  const assistant = { ...assistantMessage(responseText, routedTo), citations };
   saveExchange(scope, user, assistant);
-  return { text: responseText, messageId: assistant.id, routedTo: "personal", userMessage: message };
+  return {
+    text: responseText,
+    messageId: lastSchedulerMessageId || assistant.id,
+    routedTo,
+    actionExecuted,
+    navigateTo,
+    userMessage: message,
+    citations,
+  };
 }
 
 export function ratePersonalResponse(userMessage: string, assistantResponse: string, rating: "good" | "bad"): void {

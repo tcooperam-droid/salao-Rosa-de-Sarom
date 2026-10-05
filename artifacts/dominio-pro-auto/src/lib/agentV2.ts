@@ -845,7 +845,29 @@ async function executeComplete(params: Record<string, unknown>): Promise<string>
 }
 
 async function executeSchedule(params: Record<string, unknown>, allowPendingConfirmation = false): Promise<string> {
-  return executeScheduleServer(params, allowPendingConfirmation && params.confirmed === true);
+  const result = await executeScheduleServer(params, allowPendingConfirmation && params.confirmed === true);
+
+  // O executor transacional cria a reserva no primeiro passo, mas a confirmação
+  // ainda acontece em uma mensagem posterior. Persistir a ação aqui é essencial:
+  // sem isso, "sim" volta para o LLM como uma conversa nova e nunca confirma o hold.
+  if (result.startsWith("CONFIRMACAO:")) {
+    savePendingAction(
+      { type: "agendar", params: { ...params, confirmed: true } } as ActionPayload,
+      "confirmation",
+    );
+  } else if (result.startsWith("CONFLITO:")) {
+    savePendingAction(
+      { type: "agendar", params: { ...params, confirmed: true, forceConflict: true } } as ActionPayload,
+      "conflict",
+    );
+  } else if (result.startsWith("AGUARDANDO_PROFISSIONAL:")) {
+    savePendingAction(
+      { type: "agendar", params } as ActionPayload,
+      "professional",
+    );
+  }
+
+  return result;
 }
 
 // ─── Helpers de detecção ──────────────────────────────────

@@ -8,7 +8,8 @@ Responda em português do Brasil, salvo se o usuário pedir outro idioma.
 Seja prático, transparente e cuidadoso: não invente fatos, não diga que executou uma ação quando apenas sugeriu algo e deixe claro quando precisar de dados externos.
 Trate a memória como contexto útil, não como autoridade absoluta: confirme informações conflitantes e não exponha segredos, tokens ou dados sensíveis.
 Quando receber contexto de pesquisa na Internet, use-o como fonte principal, cite as fontes fornecidas e diferencie fatos atuais de conhecimento geral.
-Quando o pedido for uma operação da agenda do salão (criar, mover, cancelar ou concluir agendamento, ou consultar horários/clientes do app), a camada de integração deve encaminhá-lo ao agente de agendamento; não simule essa operação nesta conversa.`;
+Quando o pedido for uma operação da agenda do salão (criar, mover, cancelar ou concluir agendamento, ou consultar horários/clientes do app), a camada de integração deve encaminhá-lo ao agente de agendamento; não simule essa operação nesta conversa.
+Quando o usuário relatar erro, comportamento incorreto ou pedir correção do agente de agendamento, use a ferramenta diagnose_scheduler_agent. Ela entrega ao agente técnico os diálogos, respostas, erros e ações recentes do agendamento junto com o contexto do app. O agente técnico diagnostica e sugere correção; não afirme que código foi alterado automaticamente.`;
 
 export function buildPersonalSystemPrompt(
   memory: PersonalMemory,
@@ -17,7 +18,7 @@ export function buildPersonalSystemPrompt(
   const identity = PERSONAL_AGENT_IDENTITY
     .replace("Ricardo", options.userName?.trim() || "Ricardo")
     .concat(options.salonName ? `\nO negócio conectado se chama ${options.salonName}.` : "");
-  return `${identity}${buildMemoryContext(memory)}\n\nCAPACIDADES ATUAIS:\n- Conversa geral e raciocínio assistido por IA.\n- Memória local de fatos, instruções, objetivos e feedback, controlável pelo usuário.\n- Ponte explícita para o agente de agendamento do Domínio Pro.\n- A memória não é treinamento de pesos do modelo; ela é contexto recuperado a cada conversa.`;
+  return `${identity}${buildMemoryContext(memory)}\n\nCAPACIDADES ATUAIS:\n- Conversa geral e raciocínio assistido por IA.\n- Memória local de fatos, instruções, objetivos e feedback, controlável pelo usuário.\n- Ponte explícita para o agente de agendamento do Domínio Pro.\n- Agente técnico acionável como ferramenta para investigar diálogos e erros do agente de agendamento e do app.\n- A memória não é treinamento de pesos do modelo; ela é contexto recuperado a cada conversa.`;
 }
 
 export function extractTeachingInstruction(message: string): string | null {
@@ -51,8 +52,21 @@ export function isSchedulerRequest(message: string): boolean {
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
-  const scheduling = /\b(agendar|agendamento|agendamentos|marcar|remarcar|reagendar|cancelar.*(agendamento|horario)|desmarcar|mover.*(agendamento|horario)|concluir.*(agendamento|atendimento)|agenda|horarios|cliente cadastrado|servico cadastrado|profissional disponivel|faturamento do|caixa do)\b/;
-  return scheduling.test(value) && !/\b(planejar|ideia de agenda|como organizar.*agenda|modelo de agenda)\b/.test(value);
+  if (/\b(planejar|ideia de agenda|como organizar.*agenda|modelo de agenda|identificar.*erro|corrigir|correcao|explicar|por que|porque|na verdade|voce acertou|errou)\b/.test(value)) {
+    return false;
+  }
+  const operation = /\b(agendar|marcar|remarcar|reagendar|desmarcar|cancelar|mover|concluir)\b/;
+  const lookup = /\b(quais|qual|que|temos|existe|existem|verifique|consulte|listar|liste)\b.*\b(agendamento|agendamentos|agenda|horario|horarios|cliente cadastrado|servico cadastrado|profissional disponivel)\b/;
+  const confirmation = /\b(agenda mesmo assim|confirma|confirmo|pode executar|pode fazer)\b/;
+  return operation.test(value) || lookup.test(value) || confirmation.test(value);
+}
+
+export function isTechnicalRequest(message: string): boolean {
+  const value = message
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  return /\b(erro|bug|falha|503|tela|codigo|programacao|desenvolvimento|seguranca|diagnostico|corrigir o app|corrigir o aplicativo|analisar o app|analisar o aplicativo|revisar o codigo|agente tecnico)\b/.test(value);
 }
 
 export function isLikelyWebResearchRequest(message: string): boolean {
