@@ -473,15 +473,15 @@ function useAccentColor(): string {
   const [accent, setAccent] = useState(() => {
     try {
       const s = localStorage.getItem("salon_config");
-      if (s) return JSON.parse(s).accentColor || "#ec4899";
+      if (s) return JSON.parse(s).accentColor || "#c9a45c";
     } catch { /* ignore */ }
-    return "#ec4899";
+    return "#c9a45c";
   });
   useEffect(() => {
     const onUpdate = () => {
       try {
         const s = localStorage.getItem("salon_config");
-        if (s) setAccent(JSON.parse(s).accentColor || "#ec4899");
+        if (s) setAccent(JSON.parse(s).accentColor || "#c9a45c");
       } catch { /* ignore */ }
     };
     window.addEventListener("salon_config_updated", onUpdate);

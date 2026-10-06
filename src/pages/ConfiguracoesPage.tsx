@@ -50,7 +50,7 @@ const DEFAULT_CONFIG: SalonConfig = {
   slotDuration: 30,
   notifyEmail: false,
   autoOpenCash: true,
-  accentColor: "#ec4899",
+  accentColor: "#c9a45c",
   themeId: "rosa-neon",
   logoUrl: "",
   bgType: "default",
@@ -70,7 +70,7 @@ const GRADIENT_PRESETS = [
 ];
 
 const ACCENT_COLORS = [
-  "#ec4899", "#8b5cf6", "#06b6d4", "#10b981", "#f59e0b",
+  "#c9a45c", "#8b5cf6", "#06b6d4", "#10b981", "#f59e0b",
   "#ef4444", "#3b82f6", "#84cc16", "#f97316", "#6366f1",
 ];
 

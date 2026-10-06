@@ -237,7 +237,7 @@ export function calcPopularServices(appts: Appointment[]) {
   appts.filter(isFinancialAppointment).forEach(a => {
     (a.services ?? []).forEach(s => {
       if (!counts[s.serviceId]) {
-        counts[s.serviceId] = { serviceId: s.serviceId, name: s.name, count: 0, revenue: 0, color: s.color ?? "#ec4899" };
+        counts[s.serviceId] = { serviceId: s.serviceId, name: s.name, count: 0, revenue: 0, color: s.color ?? "#c9a45c" };
       }
       counts[s.serviceId].count++;
       counts[s.serviceId].revenue += toNum(s.price);
@@ -364,7 +364,7 @@ export function calcMostProfitableServices(appts: Appointment[]): {
           count:        1,
           revenue:      price,
           materialCost: matCost,
-          color:        s.color ?? "#ec4899",
+          color:        s.color ?? "#c9a45c",
         });
       }
     });

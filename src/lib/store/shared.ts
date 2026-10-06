@@ -102,7 +102,7 @@ export function toEmployee(r: any): Employee {
     name: r.name,
     email: r.email ?? "",
     phone: r.phone ?? "",
-    color: r.color ?? "#ec4899",
+    color: r.color ?? "#c9a45c",
     photoUrl: r.photo_url ?? null,
     specialties: r.specialties ?? [],
     commissionPercent: Number(r.commission_percent ?? 0),
@@ -121,7 +121,7 @@ export function toService(r: any): Service {
     price: Number(r.price ?? 0),
     materialCostPercent: Number(r.material_cost_percent ?? 0),
     commissionMode: "cost_first",
-    color: r.color ?? "#ec4899",
+    color: r.color ?? "#c9a45c",
     active: r.active ?? true,
     createdAt: r.created_at,
   };

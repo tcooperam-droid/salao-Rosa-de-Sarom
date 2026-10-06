@@ -221,14 +221,14 @@ export default function DespesasPage() {
     }
   }
 
-  const accentColor = localStorage.getItem("salon_config") ? JSON.parse(localStorage.getItem("salon_config")!).accentColor : "#ec4899";
+  const accentColor = localStorage.getItem("salon_config") ? JSON.parse(localStorage.getItem("salon_config")!).accentColor : "#c9a45c";
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 md:space-y-8 animate-in fade-in duration-500">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white flex items-center gap-3">
+          <h1 className="font-display text-2xl md:text-3xl font-semibold tracking-tight text-white flex items-center gap-3">
             <div className="p-2 rounded-xl bg-white/5 border border-white/10">
               <Receipt className="w-8 h-8" style={{ color: accentColor }} />
             </div>

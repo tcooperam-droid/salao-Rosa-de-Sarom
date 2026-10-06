@@ -156,7 +156,7 @@ export default function RelatoriosPage() {
       completed: "#22c55e", cancelled: "#ef4444", no_show: "#6b7280",
     };
     return Object.entries(map).map(([st, count]) => ({
-      name: labels[st] ?? st, value: count, color: colors[st] ?? "#ec4899",
+      name: labels[st] ?? st, value: count, color: colors[st] ?? "#c9a45c",
     }));
   }, [appts]);
 
@@ -208,7 +208,7 @@ export default function RelatoriosPage() {
   }, [allAppts, now]);
 
   const kpis = [
-    { label: "Bruto da Agenda", value: fmt(financialSummary.grossRevenue), icon: DollarSign, color: "#ec4899", growth: growth.revenue },
+    { label: "Bruto da Agenda", value: fmt(financialSummary.grossRevenue), icon: DollarSign, color: "#c9a45c", growth: growth.revenue },
     { label: "Após comissões", value: fmt(financialSummary.afterCommissions), icon: TrendingUp, color: "#22c55e", growth: null },
     { label: "Após comissões e despesas", value: fmt(financialSummary.afterCommissionsAndExpenses), icon: TrendingUp, color: "#14b8a6", growth: null },
     { label: "Resultado após todos os custos", value: fmt(financialSummary.afterCostsAndExpenses), icon: TrendingUp, color: "#0ea5e9", growth: null },
@@ -459,7 +459,7 @@ export default function RelatoriosPage() {
                   <XAxis dataKey="label" tick={tickStyle} axisLine={false} tickLine={false} />
                   <YAxis tick={tickStyle} axisLine={false} tickLine={false} tickFormatter={(v) => `R$ ${v/1000}k`} />
                   <Tooltip contentStyle={tooltipStyle} formatter={(v: any) => [fmt(Number(v)), "Faturamento"]} />
-                  <Bar dataKey="revenue" fill="#ec4899" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="revenue" fill="#c9a45c" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -553,7 +553,7 @@ export default function RelatoriosPage() {
                 <XAxis dataKey="label" tick={tickStyle} axisLine={false} tickLine={false} />
                 <YAxis tick={tickStyle} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={tooltipStyle} formatter={(v: any) => [fmt(Number(v)), "Faturamento"]} />
-                <Bar dataKey="revenue" fill="#ec4899" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="revenue" fill="#c9a45c" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>

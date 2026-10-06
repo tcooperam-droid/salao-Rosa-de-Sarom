@@ -15,7 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { Plus, Pencil, Trash2, Scissors, Clock, DollarSign, Package } from "lucide-react";
 import { servicesStore, servicePackagesStore, type Service, type ServicePackage } from "@/features/servicos";
 
-const COLORS = ["#ec4899", "#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#ef4444", "#3b82f6", "#84cc16", "#f97316", "#6366f1"];
+const COLORS = ["#c9a45c", "#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#ef4444", "#3b82f6", "#84cc16", "#f97316", "#6366f1"];
 
 interface ServiceForm {
   name: string; description: string; durationMinutes: number;

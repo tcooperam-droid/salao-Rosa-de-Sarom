@@ -32,9 +32,9 @@ const toNum = (v: unknown) => parseFloat(String(v ?? 0)) || 0;
 function getAccent(): string {
   try {
     const s = localStorage.getItem("salon_config");
-    if (s) return JSON.parse(s).accentColor || "#ec4899";
+    if (s) return JSON.parse(s).accentColor || "#c9a45c";
   } catch { /* ignore */ }
-  return "#ec4899";
+  return "#c9a45c";
 }
 
 function MetricCard({ icon: Icon, label, value, sub, color, onClick }: {
@@ -184,7 +184,7 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm text-white/40">{greeting} 👋</p>
-          <h1 className="text-xl font-bold text-gradient mt-0.5">{salonName}</h1>
+          <h1 className="font-display text-2xl font-semibold text-gradient mt-0.5">{salonName}</h1>
           <p className="text-xs text-white/30 mt-0.5 capitalize">
             {format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}
           </p>

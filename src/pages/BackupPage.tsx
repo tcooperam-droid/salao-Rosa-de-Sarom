@@ -108,7 +108,7 @@ export default function BackupPage() {
           for (const e of data.employees) {
             await employeesStore.create({
               name: e.name, email: e.email ?? "", phone: e.phone ?? "",
-              color: e.color ?? "#ec4899", photoUrl: e.photoUrl ?? null, specialties: e.specialties ?? [],
+              color: e.color ?? "#c9a45c", photoUrl: e.photoUrl ?? null, specialties: e.specialties ?? [],
               commissionPercent: e.commissionPercent ?? 0,
               workingHours: e.workingHours ?? {}, active: e.active ?? true,
             });
@@ -121,7 +121,7 @@ export default function BackupPage() {
               durationMinutes: s.durationMinutes ?? 60, price: s.price ?? 0,
               materialCostPercent: s.materialCostPercent ?? 0,
               commissionMode: "cost_first",
-              color: s.color ?? "#ec4899", active: s.active ?? true,
+              color: s.color ?? "#c9a45c", active: s.active ?? true,
             });
           }
         }

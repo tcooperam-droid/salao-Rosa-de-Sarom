@@ -97,9 +97,9 @@ function renderMarkdown(text: string) {
 function getAccent(): string {
   try {
     const s = localStorage.getItem("salon_config");
-    if (s) return JSON.parse(s).accentColor || "#ec4899";
+    if (s) return JSON.parse(s).accentColor || "#c9a45c";
   } catch {}
-  return "#ec4899";
+  return "#c9a45c";
 }
 
 function getSalonName(): string {

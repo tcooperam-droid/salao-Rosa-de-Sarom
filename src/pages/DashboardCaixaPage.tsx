@@ -66,7 +66,7 @@ function getFutureRange(period: FuturePeriod) {
   }
 }
 
-function Sparkline({ data, color = "#ec4899" }: { data: number[]; color?: string }) {
+function Sparkline({ data, color = "#c9a45c" }: { data: number[]; color?: string }) {
   if (data.length < 2) return null;
   const max = Math.max(...data, 1);
   const w = 80; const h = 28;
@@ -366,7 +366,7 @@ export default function DashboardCaixaPage() {
                     {Math.abs(revDelta).toFixed(1)}% vs ant.
                   </span>
                 ) : <span />}
-                <Sparkline data={sparkData} color="#ec4899" />
+                <Sparkline data={sparkData} color="#c9a45c" />
               </div>
             </CardContent>
           </Card>

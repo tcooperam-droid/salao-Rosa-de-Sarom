@@ -34,8 +34,8 @@ import { useStoreVersion } from "@/hooks/useStoreVersion";
 import { localDateKey } from "@/lib/agentSchedule";
 
 function getAccent() {
-  try { return JSON.parse(localStorage.getItem("salon_config") || "{}").accentColor || "#ec4899"; }
-  catch { return "#ec4899"; }
+  try { return JSON.parse(localStorage.getItem("salon_config") || "{}").accentColor || "#c9a45c"; }
+  catch { return "#c9a45c"; }
 }
 function fmt(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });

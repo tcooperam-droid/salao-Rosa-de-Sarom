@@ -44,10 +44,10 @@ function loadBranding() {
     const s = localStorage.getItem("salon_config");
     if (s) {
       const p = JSON.parse(s);
-      return { name: p.salonName || "Domínio Pro", logo: p.logoUrl || "" };
+      return { name: p.salonName || "Salão Rosa de Sarom", logo: p.logoUrl || "" };
     }
   } catch { /* ignore */ }
-  return { name: "Domínio Pro", logo: "" };
+  return { name: "Salão Rosa de Sarom", logo: "" };
 }
 
 function loadBackground(): React.CSSProperties {
@@ -70,15 +70,15 @@ export const THEME_PALETTES = [
   // ── Temas escuros ──────────────────────────────────────
   {
     id: "rosa-neon",
-    name: "Rosa Neon",
-    accent: "#ec4899",
-    bg: "#0d0d14",
-    surface: "rgba(15,15,28,0.95)",
-    card: "rgba(20,20,35,0.9)",
-    border: "rgba(255,255,255,0.07)",
+    name: "Rosa de Sarom",
+    accent: "#c9a45c",
+    bg: "#0b0d12",
+    surface: "rgba(11,13,18,0.96)",
+    card: "rgba(24,24,29,0.92)",
+    border: "rgba(201,164,92,0.2)",
     dark: true,
-    textColor: "#ffffff",
-    textMuted: "rgba(255,255,255,0.45)",
+    textColor: "#fffaf0",
+    textMuted: "rgba(246,230,193,0.5)",
   },
   {
     id: "roxo-galaxy",
@@ -204,7 +204,7 @@ export const THEME_PALETTES = [
   {
     id: "branco-minimal",
     name: "Branco Minimal",
-    accent: "#ec4899",
+    accent: "#c9a45c",
     bg: "#f4f4f8",
     surface: "rgba(255,255,255,0.97)",
     card: "rgba(255,255,255,0.97)",
@@ -229,9 +229,9 @@ function loadPalette() {
 function getAccent(): string {
   try {
     const s = localStorage.getItem("salon_config");
-    if (s) return JSON.parse(s).accentColor || "#ec4899";
+    if (s) return JSON.parse(s).accentColor || "#c9a45c";
   } catch { /* ignore */ }
-  return "#ec4899";
+  return "#c9a45c";
 }
 
 // ─── Logo Component ───────────────────────────────────────
@@ -252,7 +252,7 @@ function BrandLogo({ size = 48 }: { size?: number }) {
       boxShadow: `0 4px 20px ${accent}30`,
       display: "flex", alignItems: "center", justifyContent: "center",
     }}>
-      <Scissors style={{ width: size * 0.42, height: size * 0.42, color: accent }} />
+      <img src="/icons/icon-192.png" alt="Salão Rosa de Sarom" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: size * 0.22 }} />
     </div>
   );
 }
@@ -339,10 +339,10 @@ export default function DominioLayout({ children, onNewAppt }: {
         }}>
         <div className="flex flex-col h-full">
           {/* Logo / Header */}
-          <div className="p-6 flex items-center gap-4">
+          <div className="p-6 flex items-center gap-4 border-b" style={{ borderColor: "rgba(201,164,92,0.18)" }}>
             <BrandLogo size={42} />
             <div className="flex flex-col min-w-0">
-              <span className="font-bold text-lg truncate" style={{ color: palette.textColor }}>
+                <span className="font-display font-semibold text-lg truncate" style={{ color: palette.textColor }}>
                 {branding.name}
               </span>
               <span className="text-[10px] font-medium tracking-widest uppercase opacity-40" style={{ color: palette.textColor }}>

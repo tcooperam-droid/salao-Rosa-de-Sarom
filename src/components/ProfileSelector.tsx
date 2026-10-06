@@ -6,11 +6,11 @@ import { type UserRole, setSession, loadAccessConfig, getDefaultRoute, isAccessC
 import { Eye, EyeOff, Lock, Fingerprint } from "lucide-react";
 
 function getAccent() {
-  try { const s = localStorage.getItem("salon_config"); if (s) return JSON.parse(s).accentColor || "#ec4899"; } catch {}
-  return "#ec4899";
+  try { const s = localStorage.getItem("salon_config"); if (s) return JSON.parse(s).accentColor || "#c9a45c"; } catch {}
+  return "#c9a45c";
 }
 function getSalonName() {
-  try { const s = localStorage.getItem("salon_config"); if (s) return JSON.parse(s).salonName || "Domínio Pro"; } catch {}
+  try { const s = localStorage.getItem("salon_config"); if (s) return JSON.parse(s).salonName || "Salão Rosa de Sarom"; } catch {}
   return "Domínio Pro";
 }
 
