@@ -368,18 +368,18 @@ const AppointmentBlock = memo(function AppointmentBlock({
       </div>
       {/* Nome do cliente (secundário) */}
       {height > 36 && !isBlocked && (
-        <p className="text-[10px] text-muted-foreground truncate leading-tight">
+        <p className="text-[10px] text-white/80 truncate leading-tight">
           {appt.clientName ?? "Sem nome"}
         </p>
       )}
       {height > 52 && !isBlocked && (
-        <p className="text-xs text-muted-foreground flex items-center gap-0.5">
-          <Clock className="w-2.5 h-2.5" />
+        <p className="text-xs text-white/80 flex items-center gap-0.5">
+          <Clock className="w-2.5 h-2.5 text-white/70" />
           {format(start, "HH:mm")}–{format(end, "HH:mm")}
         </p>
       )}
       {height > 70 && !isBlocked && appt.totalPrice != null && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-white/80">
           R$ {appt.totalPrice.toFixed(2)}
         </p>
       )}
