@@ -51,9 +51,16 @@ function loadBranding() {
 }
 
 function loadBackground(): React.CSSProperties {
+  const wallpaper = "/wallpapers/rosa-sarom-wallpaper.jpg?v=rosa-20261007";
+  const wallpaperStyle: React.CSSProperties = {
+    backgroundImage: `linear-gradient(rgba(5, 7, 11, 0.62), rgba(5, 7, 11, 0.78)), url(${wallpaper})`,
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    backgroundAttachment: "fixed",
+  };
   try {
     const s = localStorage.getItem("salon_config");
-    if (!s) return {};
+    if (!s) return wallpaperStyle;
     const c = JSON.parse(s);
     if (c.bgType === "solid" && c.bgColor)
       return { backgroundColor: c.bgColor };
@@ -62,7 +69,7 @@ function loadBackground(): React.CSSProperties {
     if (c.bgType === "image" && c.bgImageUrl)
       return { backgroundImage: `url(${c.bgImageUrl})`, backgroundSize: "cover", backgroundPosition: "center" };
   } catch { /* ignore */ }
-  return {};
+  return wallpaperStyle;
 }
 
 // ─── Paletas de tema ─────────────────────────────────────
