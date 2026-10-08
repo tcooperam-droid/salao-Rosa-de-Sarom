@@ -51,10 +51,12 @@ function loadBranding() {
 }
 
 function loadBackground(): React.CSSProperties {
-  const wallpaper = "/wallpapers/rosa-sarom-wallpaper.jpg?v=rosa-20261007";
+  const wallpaper = "/wallpapers/rosa-sarom-wallpaper.jpg?v=rosa-20261008";
   const wallpaperStyle: React.CSSProperties = {
     backgroundImage: `linear-gradient(rgba(5, 7, 11, 0.62), rgba(5, 7, 11, 0.78)), url(${wallpaper})`,
-    backgroundSize: "cover",
+    backgroundColor: "#080a10",
+    backgroundSize: "contain",
+    backgroundRepeat: "no-repeat",
     backgroundPosition: "center",
     backgroundAttachment: "fixed",
   };

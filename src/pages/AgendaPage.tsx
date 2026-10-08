@@ -331,7 +331,7 @@ const AppointmentBlock = memo(function AppointmentBlock({
         height: `${height}px`,
         left: "3px",
         right: "3px",
-        backgroundColor: color + "25",
+        backgroundColor: color + "55",
         borderLeft: `3px solid ${color}`,
         zIndex: 10,
         touchAction: "none",
