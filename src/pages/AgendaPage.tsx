@@ -10,7 +10,7 @@ import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Plus, Calendar, CalendarDays, RefreshCw, Clock, Link2, Search, Undo2, Redo2, Lock, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, CalendarDays, Clock, Link2, Search, Undo2, Redo2, Lock, Trash2 } from "lucide-react";
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -573,7 +573,6 @@ export default function AgendaPage() {
   const [groupClientName, setGroupClientName] = useState<string | undefined>();
   const [groupId, setGroupId]             = useState<string | undefined>();
   const [refreshKey, setRefreshKey]       = useState(0);
-  const [refreshing, setRefreshing]       = useState(false);
   const [blockModalOpen, setBlockModalOpen] = useState(false);
   const [editingBlock, setEditingBlock] = useState<Appointment | null>(null);
 
@@ -669,19 +668,6 @@ export default function AgendaPage() {
       window.removeEventListener("store_updated", onStoreUpdate);
       window.removeEventListener("appointments_updated", onStoreUpdate);
     };
-  }, []);
-
-  const handleRefresh = useCallback(async () => {
-    setRefreshing(true);
-    try {
-      // Rebusca todos os dados do Supabase sem recarregar a página
-      await fetchAllData();
-      setRefreshKey(k => k + 1);
-    } catch (err) {
-      console.error("Erro ao atualizar:", err);
-    } finally {
-      setRefreshing(false);
-    }
   }, []);
 
   // Horários/slots dinâmicos vindos de Configurações
@@ -917,8 +903,8 @@ export default function AgendaPage() {
     <div className="flex flex-col h-full" style={{ userSelect: dragging ? "none" : undefined }}>
 
       {/* ── Header ── */}
-      <div className="flex items-center gap-2 md:gap-3 px-3 md:px-6 py-2 md:py-3 border-b border-border bg-card/30 backdrop-blur-sm flex-wrap">
-        <div className="flex items-center gap-1 md:gap-2">
+      <div className="flex items-center gap-1.5 md:gap-3 px-2 md:px-6 py-2 md:py-3 border-b border-border bg-card/30 backdrop-blur-sm flex-nowrap overflow-x-auto">
+        <div className="flex items-center gap-1 md:gap-2 min-w-0 flex-1">
           <Button variant="outline" size="icon" onClick={() => navigateDate(-1)} className="h-8 w-8 bg-transparent">
             <ChevronLeft className="w-3 h-3" />
           </Button>
@@ -927,7 +913,7 @@ export default function AgendaPage() {
           <Popover open={showDatePicker} onOpenChange={setShowDatePicker}>
             <PopoverTrigger asChild>
               <div className="flex items-center gap-2 min-w-0 px-3 py-1.5 rounded-lg bg-gradient-to-r from-primary/15 to-primary/5 border border-primary/40 cursor-pointer hover:border-primary/70 hover:from-primary/20 hover:to-primary/10 transition-all shadow-sm">
-                <span className="text-xs md:text-sm font-bold text-primary capitalize truncate max-w-[140px] md:max-w-none">
+                <span className="text-xs md:text-sm font-bold text-primary capitalize truncate max-w-[112px] md:max-w-none">
                   {formattedDate}
                 </span>
                 <Calendar className="w-4 h-4 text-primary flex-shrink-0" />
@@ -985,7 +971,7 @@ export default function AgendaPage() {
           </Button>
         </div>
 
-        <div className="flex items-center gap-1.5 ml-auto">
+        <div className="flex items-center gap-0.5 md:gap-1.5 ml-0 flex-shrink-0">
           {/* Undo / Redo */}
           <Button
             variant="ghost" size="icon"
@@ -1005,9 +991,6 @@ export default function AgendaPage() {
           >
             <Redo2 className="w-3.5 h-3.5" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={handleRefresh} disabled={refreshing} className="h-8 w-8" title="Atualizar">
-            <RefreshCw className={cn("w-3 h-3", refreshing && "animate-spin")} />
-          </Button>
           <Button
             variant="outline" size="sm" onClick={openNewBlock}
             className="gap-1 h-8 text-xs bg-transparent border-amber-500/40 text-amber-300 hover:bg-amber-500/10"
@@ -1019,15 +1002,6 @@ export default function AgendaPage() {
           <Badge variant="secondary" className="text-xs hidden md:inline-flex">
             {completedCount}/{appointments.length}
           </Badge>
-          <Button
-            size="sm"
-            onClick={() => { capturePending(); setShowPackages(true); setEditingAppt(null); setDefaultEmpId(undefined); setGroupClientName(undefined); setGroupId(undefined); setModalOpen(true); }}
-            className="gap-1 h-8 text-xs md:text-sm"
-          >
-            <Plus className="w-3 h-3" />
-            <span className="hidden md:inline">Novo Agendamento</span>
-            <span className="md:hidden">+</span>
-          </Button>
         </div>
       </div>
 
