@@ -51,19 +51,22 @@ function loadBranding() {
 }
 
 function loadBackground(): React.CSSProperties {
-  const wallpaper = "/wallpapers/rosa-sarom-wallpaper.jpg?v=rosa-20261008";
-  const wallpaperStyle: React.CSSProperties = {
-    backgroundImage: `linear-gradient(rgba(5, 7, 11, 0.62), rgba(5, 7, 11, 0.78)), url(${wallpaper})`,
-    backgroundColor: "#080a10",
-    backgroundSize: "contain",
-    backgroundRepeat: "no-repeat",
-    backgroundPosition: "center",
-    backgroundAttachment: "fixed",
-  };
   try {
     const s = localStorage.getItem("salon_config");
-    if (!s) return wallpaperStyle;
+    if (!s) return {};
     const c = JSON.parse(s);
+    if (c.bgType === "rosa-wallpaper") {
+      const wallpaper = "/wallpapers/rosa-sarom-wallpaper.jpg?v=rosa-20261008";
+      const overlay = Math.max(0.25, Math.min(0.9, Number(c.bgOverlay ?? 0.62)));
+      return {
+        backgroundColor: "#080a10",
+        backgroundImage: `linear-gradient(rgba(5, 7, 11, ${overlay}), rgba(5, 7, 11, ${Math.min(0.95, overlay + 0.16)})), url(${wallpaper})`,
+        backgroundSize: c.bgFit === "cover" ? "cover" : "contain",
+        backgroundRepeat: "no-repeat",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
+      };
+    }
     if (c.bgType === "solid" && c.bgColor)
       return { backgroundColor: c.bgColor };
     if (c.bgType === "gradient" && c.bgGradientFrom && c.bgGradientTo)
@@ -71,7 +74,7 @@ function loadBackground(): React.CSSProperties {
     if (c.bgType === "image" && c.bgImageUrl)
       return { backgroundImage: `url(${c.bgImageUrl})`, backgroundSize: "cover", backgroundPosition: "center" };
   } catch { /* ignore */ }
-  return wallpaperStyle;
+  return {};
 }
 
 // ─── Paletas de tema ─────────────────────────────────────
