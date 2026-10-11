@@ -21,6 +21,7 @@ const FinanceiroDashboardPage = lazy(() => import("../pages/FinanceiroDashboardP
 const ContabilidadePage = lazy(() => import("../pages/ContabilidadePage"));
 const PersonalAgentPage = lazy(() => import("../pages/PersonalAgentPage"));
 const UsuariosPage = lazy(() => import("../pages/UsuariosPage"));
+const RedesSociaisPage = lazy(() => import("../pages/RedesSociaisPage"));
 
 function RouteLoading() {
   return (
@@ -72,6 +73,7 @@ function ProtectedContent() {
           <Route path="/usuarios" component={UsuariosPage} />
           <Route path="/ferramentas-clientes" component={FerramentasClientesPage} />
           <Route path="/agente-pessoal" component={PersonalAgentPage} />
+          <Route path="/redes-sociais" component={RedesSociaisPage} />
           <Route path="/assistente">
             <Redirect to="/agente-pessoal" />
           </Route>

@@ -20,6 +20,7 @@ const ALLOWED_ROUTES: Record<UserRole, string[]> = {
     "/agenda",
     "/clientes",
     "/servicos",
+    "/redes-sociais",
   ],
 };
 
@@ -41,6 +42,7 @@ export const MENU_VISIBILITY: Record<UserRole, Record<string, boolean>> = {
     comissoes: true,
     financeiro: true,
     "agente-pessoal": true,
+    "redes-sociais": true,
     usuarios: true,
   },
   manager: {
@@ -59,6 +61,7 @@ export const MENU_VISIBILITY: Record<UserRole, Record<string, boolean>> = {
     comissoes: true,
     financeiro: true,
     "agente-pessoal": true,
+    "redes-sociais": true,
     usuarios: false,
   },
   employee: {
@@ -77,6 +80,7 @@ export const MENU_VISIBILITY: Record<UserRole, Record<string, boolean>> = {
     comissoes: false,
     financeiro: false,
     "agente-pessoal": false,
+    "redes-sociais": true,
     usuarios: false,
   },
 };

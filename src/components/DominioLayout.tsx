@@ -12,7 +12,7 @@ import { trackAction } from "@/lib/agentTracker";
 import {
   Calendar, Users, UserCheck, Scissors, DollarSign,
   BarChart2, Settings, Database, Menu, X,
-  Sun, Moon, Plus, Wrench,
+  Sun, Moon, Plus, Wrench, Link2,
   LogOut, Receipt, Percent, TrendingUp, Bot
 } from "lucide-react";
 
@@ -32,6 +32,7 @@ const SECONDARY_NAV = [
   { path: "/funcionarios",          label: "Funcionários",  icon: UserCheck   },
   { path: "/servicos",              label: "Serviços",      icon: Scissors    },
   { path: "/ferramentas-clientes",  label: "Ferramentas",   icon: Wrench      },
+  { path: "/redes-sociais",          label: "Redes sociais", icon: Link2       },
   { path: "/relatorios",            label: "Relatórios",    icon: BarChart2   },
   { path: "/backup",                label: "Backup",        icon: Database    },
   { path: "/configuracoes",         label: "Configurações", icon: Settings    },
