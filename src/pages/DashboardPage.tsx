@@ -14,7 +14,7 @@ import { employeesStore } from "@/features/funcionarios";
 import { appointmentsStore, type Appointment } from "@/features/agenda";
 import { fetchDashboardData } from "@/features/financeiro";
 import {
-  Calendar, CalendarDays, Clock3, Users, DollarSign, TrendingUp,
+  Calendar, CalendarDays, Users, DollarSign, TrendingUp,
   Scissors, ChevronRight, Zap,
 } from "lucide-react";
 
@@ -208,14 +208,13 @@ export default function DashboardPage() {
       </div>
 
       {/* Métricas do dia */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <MetricCard icon={Calendar} label="Agendamentos hoje" value={totalHoje}
-          sub={`${pendentes} pendentes`} color={accent}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <MetricCard icon={Calendar} label="Agenda de hoje" value={totalHoje}
+          sub={proximoAgendamento
+            ? `Próximo: ${format(new Date(proximoAgendamento.startTime), "HH:mm")} · ${proximoAgendamento.clientName || "Sem nome"}`
+            : `${pendentes} pendentes · nenhum próximo`}
+          color={accent}
           onClick={() => setLocation("/agenda")} />
-        <MetricCard icon={Clock3} label="Próximo agendamento"
-          value={proximoAgendamento ? format(new Date(proximoAgendamento.startTime), "HH:mm") : "—"}
-          sub={proximoAgendamento?.clientName || "Nenhum previsto"}
-          color="#22c55e" onClick={() => setLocation("/agenda")} />
         <MetricCard icon={CalendarDays} label="Agenda da semana" value={agendaSemana.length}
           sub="agendamentos ativos" color="#8b5cf6"
           onClick={() => setLocation("/agenda")} />
