@@ -7,15 +7,15 @@
  */
 import { useState, useEffect, useMemo } from "react";
 import { safeFmt } from "@/lib/utils";
-import { format } from "date-fns";
+import { endOfWeek, format, startOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useLocation } from "wouter";
 import { employeesStore } from "@/features/funcionarios";
 import { appointmentsStore, type Appointment } from "@/features/agenda";
-import { cashSessionsStore, fetchDashboardData } from "@/features/financeiro";
+import { fetchDashboardData } from "@/features/financeiro";
 import {
-  Calendar, Users, DollarSign, TrendingUp,
-  CheckCircle, Scissors, ChevronRight, Zap,
+  Calendar, CalendarDays, Clock3, Users, DollarSign, TrendingUp,
+  Scissors, ChevronRight, Zap,
 } from "lucide-react";
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
@@ -126,22 +126,29 @@ export default function DashboardPage() {
 
     const onUpdate = () => setRefreshKey(k => k + 1);
     window.addEventListener("store_updated", onUpdate);
-    window.addEventListener("cash_entry_auto_launched", onUpdate);
     return () => {
       window.removeEventListener("store_updated", onUpdate);
-      window.removeEventListener("cash_entry_auto_launched", onUpdate);
     };
   }, []);
 
   const employees   = useMemo(() => employeesStore.list(true),                              [refreshKey]);
   const apptToday   = useMemo(() => appointmentsStore.list({ date: today }),                [refreshKey, today]);
-  const cashSession = useMemo(() => cashSessionsStore.list().find(s => s.status === "open"), [refreshKey]);
+  const agendaAtivaHoje = useMemo(
+    () => apptToday.filter(a => a.status !== "cancelled"),
+    [apptToday],
+  );
+  const semanaInicio = format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
+  const semanaFim = format(endOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
+  const agendaSemana = useMemo(
+    () => appointmentsStore.list({ startDate: semanaInicio, endDate: semanaFim })
+      .filter(a => a.status !== "cancelled"),
+    [refreshKey, semanaInicio, semanaFim],
+  );
 
-  const totalHoje       = apptToday.length;
-  const concluidos      = apptToday.filter(a => a.status === "completed").length;
-  const pendentes       = apptToday.filter(a => ["scheduled", "confirmed"].includes(a.status)).length;
-  const faturamentoHoje = apptToday
-    .filter(a => a.status === "completed" && toNum(a.totalPrice) > 0.01)
+  const totalHoje       = agendaAtivaHoje.length;
+  const pendentes       = agendaAtivaHoje.filter(a => ["scheduled", "confirmed"].includes(a.status)).length;
+  const previsaoHoje    = agendaAtivaHoje
+    .filter(a => toNum(a.totalPrice) > 0.01)
     .reduce((s, a) => s + (a.totalPrice || 0), 0);
 
   const agora = new Date();
@@ -151,7 +158,10 @@ export default function DashboardPage() {
     .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
     .slice(0, 5);
 
+  const proximoAgendamento = proximos[0];
+
   const emAndamento = apptToday.filter(a => {
+    if (a.status === "cancelled") return false;
     const s = new Date(a.startTime);
     const e = new Date(a.endTime);
     return agora >= s && agora <= e;
@@ -190,13 +200,6 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {cashSession && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold"
-              style={{ background: "#22c55e18", color: "#22c55e", border: "1px solid #22c55e30" }}>
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Caixa aberto
-            </div>
-          )}
           <div className="hidden md:flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold"
             style={{ background: `${accent}15`, color: accent, border: `1px solid ${accent}25` }}>
             v2.0
@@ -205,15 +208,19 @@ export default function DashboardPage() {
       </div>
 
       {/* Métricas do dia */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <MetricCard icon={Calendar} label="Agendamentos hoje" value={totalHoje}
           sub={`${pendentes} pendentes`} color={accent}
           onClick={() => setLocation("/agenda")} />
-        <MetricCard icon={CheckCircle} label="Concluídos" value={concluidos}
-          sub={totalHoje > 0 ? `${Math.round(concluidos / totalHoje * 100)}% do dia` : "—"}
-          color="#22c55e" />
-        <MetricCard icon={DollarSign} label="Faturamento hoje" value={`R$ ${faturamentoHoje.toFixed(0)}`}
-          sub="serviços concluídos" color="#f59e0b"
+        <MetricCard icon={Clock3} label="Próximo agendamento"
+          value={proximoAgendamento ? format(new Date(proximoAgendamento.startTime), "HH:mm") : "—"}
+          sub={proximoAgendamento?.clientName || "Nenhum previsto"}
+          color="#22c55e" onClick={() => setLocation("/agenda")} />
+        <MetricCard icon={CalendarDays} label="Agenda da semana" value={agendaSemana.length}
+          sub="agendamentos ativos" color="#8b5cf6"
+          onClick={() => setLocation("/agenda")} />
+        <MetricCard icon={DollarSign} label="Previsão para hoje" value={`R$ ${previsaoHoje.toFixed(0)}`}
+          sub="baseada na agenda" color="#f59e0b"
           onClick={() => setLocation("/financeiro")} />
         <MetricCard icon={Users} label="Clientes" value={clientCount}
           sub="cadastrados" color="#3b82f6"
