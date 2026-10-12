@@ -3,9 +3,7 @@ import { Toaster } from "sonner";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { TooltipProvider } from "../components/ui/tooltip";
 import { ThemeProvider } from "../contexts/ThemeContext";
-import AgentChat from "../components/AgentChat";
 import AppRoutes from "./AppRoutes";
-import { subscribeToAgentConfig } from "./agentBootstrap";
 import { fetchAllData } from "../features/agenda";
 import { getSession, isAccessControlEnabled } from "../lib/access";
 
@@ -56,8 +54,6 @@ function useApplicationBootstrap(): {
     return () => window.removeEventListener("dominio_session_changed", syncBootstrapWithSession);
   }, [load]);
 
-  useEffect(() => subscribeToAgentConfig(), []);
-
   return { bootstrap, retry: () => void load(true) };
 }
 
@@ -93,7 +89,6 @@ export default function AppShell() {
         <Toaster position="top-center" richColors closeButton />
         <BootstrapNotice state={bootstrap} onRetry={retry} />
         <AppRoutes />
-        <AgentChat />
       </TooltipProvider>
     </ThemeProvider>
   );

@@ -19,7 +19,6 @@ const DespesasPage = lazy(() => import("../pages/DespesasPage"));
 const ComissoesPage = lazy(() => import("../pages/ComissoesPage"));
 const FinanceiroDashboardPage = lazy(() => import("../pages/FinanceiroDashboardPage"));
 const ContabilidadePage = lazy(() => import("../pages/ContabilidadePage"));
-const PersonalAgentPage = lazy(() => import("../pages/PersonalAgentPage"));
 const UsuariosPage = lazy(() => import("../pages/UsuariosPage"));
 const RedesSociaisPage = lazy(() => import("../pages/RedesSociaisPage"));
 
@@ -72,11 +71,7 @@ function ProtectedContent() {
           <Route path="/configuracoes" component={ConfiguracoesPage} />
           <Route path="/usuarios" component={UsuariosPage} />
           <Route path="/ferramentas-clientes" component={FerramentasClientesPage} />
-          <Route path="/agente-pessoal" component={PersonalAgentPage} />
           <Route path="/redes-sociais" component={RedesSociaisPage} />
-          <Route path="/assistente">
-            <Redirect to="/agente-pessoal" />
-          </Route>
           <Route component={NotFound} />
         </Switch>
       </DominioLayout>
