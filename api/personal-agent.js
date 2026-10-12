@@ -16,10 +16,13 @@ export default async function handler(req, res) {
 
   if (!await requireAuthorizedUser(req, res)) return;
 
-  const token = process.env.PERSONAL_LLM_API_KEY;
-  const endpoint = process.env.PERSONAL_LLM_API_URL || DEFAULT_ENDPOINT;
+  // A configuração pessoal continua tendo prioridade. Quando ela não existe,
+  // reutiliza a configuração principal já usada pelo app, sem expor segredo
+  // no navegador e sem exigir uma nova variável para cada agente especializado.
+  const token = process.env.PERSONAL_LLM_API_KEY || process.env.LLM_API_KEY || process.env.OPENAI_API_KEY;
+  const endpoint = process.env.PERSONAL_LLM_API_URL || process.env.LLM_API_URL || process.env.OPENAI_API_URL || DEFAULT_ENDPOINT;
   if (!token) {
-    return res.status(500).json({ error: "PERSONAL_LLM_API_KEY não configurada no ambiente do servidor." });
+    return res.status(500).json({ error: "LLM_API_KEY ou PERSONAL_LLM_API_KEY não configurada no ambiente do servidor." });
   }
 
   let body;
@@ -37,7 +40,7 @@ export default async function handler(req, res) {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({
-        model: process.env.PERSONAL_LLM_MODEL || body.model || DEFAULT_MODEL,
+        model: process.env.PERSONAL_LLM_MODEL || process.env.LLM_MODEL || body.model || DEFAULT_MODEL,
         messages: body.messages,
         temperature: typeof body.temperature === "number" ? body.temperature : 0.35,
         max_tokens: Math.min(Math.max(Number(body.max_tokens) || 1400, 1), 4000),
