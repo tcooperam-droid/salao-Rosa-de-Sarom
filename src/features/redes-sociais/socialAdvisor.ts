@@ -82,7 +82,10 @@ export async function sendSocialAdvisorMessage(text: string): Promise<SocialAdvi
   if (!message) throw new Error("Digite uma pergunta ou descreva uma situação das redes.");
 
   const history = readMessages().slice(-12);
-  const endpoint = getAgentEndpoint(import.meta.env.PROD ? "/api/personal-agent" : undefined);
+  // O clone Rosa compartilha a configuração principal de IA com o Pro Auto.
+  // Usamos o proxy principal, já validado no app de origem, evitando depender
+  // de PERSONAL_LLM_API_KEY, que não está configurada neste projeto Vercel.
+  const endpoint = getAgentEndpoint(import.meta.env.PROD ? "/api/agent" : undefined);
   const response = await fetch(endpoint, {
     method: "POST",
     headers: await createAuthenticatedAgentHeaders(endpoint, ""),
