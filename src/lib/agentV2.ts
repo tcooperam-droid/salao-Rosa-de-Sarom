@@ -52,6 +52,14 @@ import {
 } from "./agentSchedule";
 import { validateSchedulerPlan } from "./schedulerCore";
 import { executeScheduleServer } from "./schedulerExecutor";
+import {
+  isPendingPromptResult,
+  isRetryablePendingResult,
+  matchProfessional,
+  pendingActionForResult,
+  shouldClearPendingAction,
+  type PendingActionType,
+} from "./schedulerPending";
 
 // ─── Tipos públicos ───────────────────────────────────────
 
@@ -113,7 +121,7 @@ export function clearHistory(): void {
 
 interface PendingAction {
   action: ActionPayload;
-  type: "conflict" | "professional" | "confirmation" | "override";
+  type: PendingActionType;
   timestamp: number;
 }
 
@@ -121,7 +129,7 @@ interface PendingAction {
 // runtime), compartilhado com o agente pessoal. Ver parseActionPayload()
 // nos dois pontos de extração abaixo.
 
-function savePendingAction(action: ActionPayload, type: "conflict" | "professional" | "confirmation" | "override"): void {
+function savePendingAction(action: ActionPayload, type: PendingActionType): void {
   try {
     const data: PendingAction = { action, type, timestamp: Date.now() };
     localStorage.setItem(PENDING_KEY, JSON.stringify(data));
@@ -845,7 +853,11 @@ async function executeComplete(params: Record<string, unknown>): Promise<string>
 }
 
 async function executeSchedule(params: Record<string, unknown>, allowPendingConfirmation = false): Promise<string> {
-  return executeScheduleServer(params, allowPendingConfirmation && params.confirmed === true);
+  const action = { type: "agendar", params } as ActionPayload;
+  const result = await executeScheduleServer(params, allowPendingConfirmation && params.confirmed === true);
+  const pending = pendingActionForResult(action, result);
+  if (pending) savePendingAction(pending.action, pending.type);
+  return result;
 }
 
 // ─── Helpers de detecção ──────────────────────────────────
@@ -1170,9 +1182,14 @@ async function handlePendingAction(
       : isConfirmation(msgTrimmed);
 
     if (accepted) {
-      clearPendingAction();
       addToHistory("user", msgTrimmed);
-      const result = await executeAction(pending.action, true);
+      const actionToExecute = pending.type === "confirmation" || pending.type === "conflict"
+        ? {
+            ...pending.action,
+            params: { ...pending.action.params, confirmed: true },
+          } as ActionPayload
+        : pending.action;
+      const result = await executeAction(actionToExecute, true);
 
       if (result.startsWith("AGUARDANDO_PROFISSIONAL:")) {
         const lista = result.replace("AGUARDANDO_PROFISSIONAL:", "");
@@ -1191,10 +1208,14 @@ async function handlePendingAction(
         return { text: aviso, messageId: `m_${Date.now()}`, userMessage: msgTrimmed };
       }
 
-      addToHistory("assistant", result);
-      const isSuccess = result.includes("criado com sucesso") || result.includes("movido com sucesso");
+      const displayResult = result.startsWith("CONFIRMACAO:")
+        ? result.replace("CONFIRMACAO:", "").trim()
+        : result;
+      if (shouldClearPendingAction(result)) clearPendingAction();
+      addToHistory("assistant", displayResult);
+      const isSuccess = displayResult.includes("criado com sucesso") || displayResult.includes("movido com sucesso");
       return {
-        text: result,
+        text: displayResult,
         actionExecuted: isSuccess,
         navigateTo: isSuccess ? "/agenda" : undefined,
         messageId: `m_${Date.now()}`,
@@ -1235,17 +1256,9 @@ async function handlePendingAction(
     }
 
     const emps = employeesStore.list(true);
-    const empName = msgTrimmed.toLowerCase();
-
-    const emp = emps.find(
-      (e) =>
-        e.name.toLowerCase() === empName ||
-        e.name.toLowerCase().includes(empName) ||
-        empName.includes(e.name.toLowerCase()),
-    ) ?? null;
+    const { match: emp, candidates } = matchProfessional(msgTrimmed, emps);
 
     if (emp) {
-      clearPendingAction();
       addToHistory("user", msgTrimmed);
       const updatedAction = {
         ...pending.action,
@@ -1266,11 +1279,20 @@ async function handlePendingAction(
         addToHistory("assistant", aviso);
         return { text: aviso, messageId: `m_${Date.now()}`, userMessage: msgTrimmed };
       }
+      if (result.startsWith("FORA_HORARIO:")) {
+        const aviso = result.replace("FORA_HORARIO:", "");
+        addToHistory("assistant", aviso);
+        return { text: aviso, messageId: `m_${Date.now()}`, userMessage: msgTrimmed };
+      }
 
-      addToHistory("assistant", result);
-      const isSuccess = result.includes("criado com sucesso");
+      const displayResult = result.startsWith("CONFIRMACAO:")
+        ? result.replace("CONFIRMACAO:", "").trim()
+        : result;
+      if (shouldClearPendingAction(result)) clearPendingAction();
+      addToHistory("assistant", displayResult);
+      const isSuccess = displayResult.includes("criado com sucesso");
       return {
-        text: result,
+        text: displayResult,
         actionExecuted: isSuccess,
         navigateTo: isSuccess ? "/agenda" : undefined,
         messageId: `m_${Date.now()}`,
@@ -1278,8 +1300,17 @@ async function handlePendingAction(
       };
     }
 
-    clearPendingAction();
-    return null;
+    const available = candidates.length > 0
+      ? candidates.map((employee) => employee.name).join(", ")
+      : emps.map((employee) => employee.name).join(", ");
+    const message = candidates.length > 1
+      ? `Encontrei mais de um profissional. Informe o nome completo: ${available}.`
+      : available
+        ? `Não reconheci esse profissional. Escolha um da lista: ${available}.`
+        : "Não há profissionais ativos cadastrados para este agendamento.";
+    addToHistory("user", msgTrimmed);
+    addToHistory("assistant", message);
+    return { text: message, messageId: `m_${Date.now()}`, userMessage: msgTrimmed };
   }
 
   return null;

@@ -35,7 +35,6 @@ export function initializeAgent(): void {
       apiEndpoint: import.meta.env.PROD ? "/api/personal-agent" : undefined,
       model: PERSONAL_AGENT_MODEL,
       salonName,
-      userName: "Ricardo",
     });
 
     console.info("[App] Agente IA v2 inicializado.");

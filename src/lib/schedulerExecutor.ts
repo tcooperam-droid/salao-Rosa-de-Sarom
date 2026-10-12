@@ -15,6 +15,23 @@ export interface SchedulerRpcResult {
   conflict?: { id: number; client_name: string | null; start_time: string; end_time: string };
 }
 
+interface SchedulerRpcArgs {
+  p_request_key: string;
+  p_client_id: number;
+  p_employee_id: number;
+  p_service_id: number;
+  p_start_time: string;
+  p_end_time: string;
+  p_confirm: boolean;
+  p_force_conflict: boolean;
+}
+
+async function reserveAppointment(args: SchedulerRpcArgs): Promise<SchedulerRpcResult> {
+  const { data, error } = await supabase.rpc("scheduler_reserve_appointment", args);
+  if (error) throw new Error(`Falha no executor transacional: ${error.message}`);
+  return data as SchedulerRpcResult;
+}
+
 function findClient(clients: Awaited<ReturnType<typeof clientsStore.ensureLoaded>>, name: string) {
   const needle = name.trim().toLowerCase();
   const exact = clients.find((client) => client.name.toLowerCase() === needle);
@@ -45,22 +62,35 @@ export async function executeScheduleServer(params: Record<string, unknown>, con
   if (!service) return `Serviço ID:${serviceId} não encontrado.`;
   const employees = employeesStore.list(true);
   const employee = requestedEmployeeId ? employees.find((item) => item.id === requestedEmployeeId) : employees.length === 1 ? employees[0] : null;
-  if (!employee) return `Com qual profissional deseja agendar? Disponíveis: ${employees.map((item) => `${item.name} (ID:${item.id})`).join(", ")}`;
+  if (!employee) return `AGUARDANDO_PROFISSIONAL:${employees.map((item) => `${item.name} (ID:${item.id})`).join(", ")}`;
   const times = buildScheduleTimes(date, time, Math.max(service.durationMinutes, 1));
   if (!times) return "Não foi possível montar o intervalo solicitado.";
   const requestKey = [foundClient.client.id, employee.id, service.id, times.startTime, times.endTime].join(":");
-  const { data, error } = await supabase.rpc("scheduler_reserve_appointment", {
+  const baseArgs: Omit<SchedulerRpcArgs, "p_confirm"> = {
     p_request_key: requestKey,
     p_client_id: foundClient.client.id,
     p_employee_id: employee.id,
     p_service_id: service.id,
     p_start_time: times.startTime,
     p_end_time: times.endTime,
-    p_confirm: confirmed,
     p_force_conflict: Boolean(params.forceConflict === true),
-  });
-  if (error) throw new Error(`Falha no executor transacional: ${error.message}`);
-  const result = data as SchedulerRpcResult;
+  };
+
+  let result: SchedulerRpcResult;
+  if (confirmed) {
+    // Revalidar/criar a retenção antes de confirmar. Isso permite confirmar
+    // um conflito autorizado e torna repetível uma confirmação cuja resposta
+    // tenha se perdido depois de o banco concluir a gravação.
+    const hold = await reserveAppointment({ ...baseArgs, p_confirm: false });
+    if (!hold.ok || hold.code !== "HOLD_CREATED") {
+      result = hold;
+    } else {
+      result = await reserveAppointment({ ...baseArgs, p_confirm: true });
+    }
+  } else {
+    result = await reserveAppointment({ ...baseArgs, p_confirm: false });
+  }
+
   if (result.ok && result.code === "HOLD_CREATED") {
     return `CONFIRMACAO:\nConfira o agendamento:\nCliente: ${result.client_name}\nServiço: ${result.service_name} (${result.service_duration} min)\nData: ${date} às ${time}\nProfissional: ${employee.name}\n\nConfirma? Responda sim ou não.`;
   }
