@@ -932,6 +932,19 @@ export default function AgendaPage() {
   const completedCount = appointments.filter(a => a.status === "completed").length;
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showPackages, setShowPackages] = useState(false);
+  useEffect(() => {
+    const params = new URLSearchParams(search);
+    if (params.get("new") !== "1") return;
+    setEditingAppt(null);
+    setDefaultEmpId(undefined);
+    setDefaultHour(9);
+    setDefaultMinute(0);
+    setGroupClientName(undefined);
+    setGroupId(undefined);
+    setShowPackages(true);
+    setModalOpen(true);
+    window.history.replaceState(null, "", "/agenda");
+  }, [search]);
 
   return (
     <div className="flex flex-col h-full" style={{ userSelect: dragging ? "none" : undefined }}>

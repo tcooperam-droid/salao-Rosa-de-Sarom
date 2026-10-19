@@ -275,6 +275,7 @@ export default function DominioLayout({ children, onNewAppt }: {
   onNewAppt?: () => void;
 }) {
   const [location, setLocation] = useLocation();
+  const openNewAppointment = onNewAppt ?? (() => setLocation("/agenda?new=1"));
   const { theme, toggleTheme, switchable } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [branding, setBranding] = useState(loadBranding);
@@ -462,8 +463,8 @@ export default function DominioLayout({ children, onNewAppt }: {
 
           <div className="flex items-center gap-2 ml-auto">
             {/* Botão novo agendamento — desktop */}
-            {onNewAppt && (
-              <button onClick={() => { trackAction("click", "new_appointment", "topbar desktop"); onNewAppt(); }}
+            {(
+              <button onClick={() => { trackAction("click", "new_appointment", "topbar desktop"); openNewAppointment(); }}
                 className="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-95"
                 style={{
                   background: `linear-gradient(135deg, ${accent}, ${accent}cc)`,
@@ -530,8 +531,8 @@ export default function DominioLayout({ children, onNewAppt }: {
         </nav>
 
         {/* ── FAB novo agendamento — mobile ── */}
-        {onNewAppt && (
-          <button onClick={() => { trackAction("click", "new_appointment", "FAB mobile"); onNewAppt(); }}
+        {(
+          <button onClick={() => { trackAction("click", "new_appointment", "FAB mobile"); openNewAppointment(); }}
             className="md:hidden fixed bottom-20 right-5 z-30 w-14 h-14 rounded-2xl flex items-center justify-center shadow-2xl transition-all active:scale-90"
             style={{
               background: `linear-gradient(135deg, ${accent}, ${accent}cc)`,
